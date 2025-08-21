@@ -1,0 +1,60 @@
+/* Centralizar piano na tela */
+.piano-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 40px auto;
+}
+
+/* Caixa do piano */
+.piano {
+  display: flex;
+  position: relative;
+  background: #fff;
+  border: 2px solid #333;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Teclas brancas */
+.white-key {
+  position: relative;
+  width: 60px;
+  height: 220px;
+  border: 1px solid #999;
+  background: #fff;
+  margin: 0 1px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: 12px;
+}
+
+/* Numero da tecla (em cima do nome) */
+.key-number {
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* Nome da nota */
+.note-name {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Teclas pretas */
+.black-key {
+  position: absolute;
+  top: 0;
+  left: 40px;
+  width: 40px;
+  height: 140px;
+  background: black;
+  border-radius: 0 0 4px 4px;
+  z-index: 2;
+}
