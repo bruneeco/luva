@@ -76,3 +76,22 @@
     font-size: 12px;
   }
   
+  .config-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0; /* altere de right: 0 para left: 0 */
+    width: 320px;
+    height: 100%;
+    background: #fff;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.15); /* sombra para esquerda */
+    z-index: 1000;
+    padding: 32px 24px 24px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+  .close-sidebar {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+  }
