@@ -4,6 +4,7 @@ import "./Piano.css";
 
 export default function Piano() {
   const [sampler, setSampler] = useState(null);
+  const [keyBindings, setKeyBindings] = useState({});
 
   useEffect(() => {
     const newSampler = new Tone.Sampler({
@@ -45,6 +46,13 @@ export default function Piano() {
     setSampler(newSampler);
   }, []);
 
+  useEffect(() => {
+    const savedBindings = localStorage.getItem("gloveKeyBindings");
+    if (savedBindings) {
+      setKeyBindings(JSON.parse(savedBindings));
+    }
+  }, []);
+
   const playNote = (note) => {
     if (sampler) {
       Tone.start();
@@ -52,52 +60,21 @@ export default function Piano() {
     }
   };
 
-  const keyToNote = {
-    Q: "C4",
-    W: "D4",
-    E: "E4",
-    R: "F4",
-    T: "G4",
-    Y: "A4",
-    U: "B4",
-    I: "C5",
-    O: "D5",
-    P: "E5",
-    A: "F5",
-    S: "G5",
-    D: "A5",
-    F: "B5",
-    G: "C6",
-  };
-
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
-      if (keyToNote[key]) {
-        playNote(keyToNote[key]);
+      if (keyBindings[key]) {
+        playNote(keyBindings[key]);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [sampler]);
+  }, [sampler, keyBindings]);
 
   const whiteKeys = [
-    { note: "C4", label: "C (Q)" },
-    { note: "D4", label: "D (W)" },
-    { note: "E4", label: "E (E)" },
-    { note: "F4", label: "F (R)" },
-    { note: "G4", label: "G (T)" },
-    { note: "A4", label: "A (Y)" },
-    { note: "B4", label: "B (U)" },
-    { note: "C5", label: "C (I)" },
-    { note: "D5", label: "D (O)" },
-    { note: "E5", label: "E (P)" },
-    { note: "F5", label: "F (A)" },
-    { note: "G5", label: "G (S)" },
-    { note: "A5", label: "A (D)" },
-    { note: "B5", label: "B (F)" },
+    "C4", "D4", "E4", "F4", "G4", "A4", "B4",
+    "C5", "D5", "E5", "F5", "G5", "A5", "B5"
   ];
-  
 
   const blackKeys = {
     1: "C#4",
@@ -113,14 +90,13 @@ export default function Piano() {
   return (
     <div className="piano-container">
       <div className="piano">
-        {whiteKeys.map((key, i) => (
+        {whiteKeys.map((note, i) => (
           <div
             key={i}
             className="white-key"
-            onClick={() => playNote(key.note)}
+            onClick={() => playNote(note)}
           >
-            <span className="key-number">{i + 1}</span>
-            <span className="note-name">{key.label}</span>
+            <span className="note-name">{note}</span>
             {blackKeys[i] && (
               <div
                 className="black-key"

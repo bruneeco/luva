@@ -7,7 +7,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="logo">Tactus</div>
       <ul className="nav-links">
-        <li><Link to="/Piano.jsx" className="active">Teclado virtual</Link></li>
+        <li><Link to="/piano" className="active">Teclado virtual</Link></li>
         <li><Link to="/configuracoes">Configurações</Link></li>
         <li><Link to="/ajuda">Ajuda</Link></li>
       </ul>
