@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "./components/Navbar";
 import Piano from "./components/Piano";
+import Ajuda from "./components/Ajuda";
 import InfoBox from "./components/InfoBox";
 import ConfigGlove from "./components/ConfigGlove"; // página de configurações
 import "./App.css";
@@ -64,6 +65,11 @@ export default function App() {
             path="/"
             element={<Home mappingsDir={mappings.dir} mappingsEsq={mappings.esq} />}
           />
+          <Route
+            path="/ajuda"
+            element={<Ajuda mappingsDir={mappings.dir} mappingsEsq={mappings.esq} />}
+          />
+
           <Route
             path="/piano"
             element={<Piano mappingsDir={mappings.dir} mappingsEsq={mappings.esq} />}

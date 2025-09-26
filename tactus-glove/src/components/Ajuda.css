@@ -1,0 +1,99 @@
+.ajuda-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 30px;
+    font-family: "Segoe UI", Roboto, sans-serif;
+    color: #333;
+    background: linear-gradient(135deg, #fdfdfd, #f3f9ff);
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    animation: fadeIn 0.6s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .ajuda-container h1 {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #005fa3;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 3px rgba(0, 95, 163, 0.2);
+    border-bottom: 3px solid #007acc;
+    display: inline-block;
+    padding-bottom: 6px;
+  }
+  
+  .ajuda-section {
+    margin-bottom: 35px;
+    padding: 25px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .ajuda-section:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 122, 204, 0.15);
+  }
+  
+  .ajuda-section h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #007acc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .ajuda-section p {
+    font-size: 1.05rem;
+    margin-top: 12px;
+    line-height: 1.7;
+    color: #444;
+  }
+  
+  .ajuda-section ul,
+  .ajuda-section ol {
+    margin-top: 15px;
+    margin-left: 20px;
+    padding-left: 15px;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  
+  .ajuda-section li {
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 10px;
+  }
+  
+  .ajuda-section li::before {
+    content: "•";
+    position: absolute;
+    left: -12px;
+    color: #007acc;
+    font-size: 1.2rem;
+  }
+  
+  .ajuda-section strong {
+    color: #005fa3;
+  }
+  
+  .ajuda-section em {
+    color: #444;
+    font-style: italic;
+  }
+  
