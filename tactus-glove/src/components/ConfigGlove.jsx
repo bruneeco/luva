@@ -31,6 +31,9 @@ export default function ConfigGlove() {
   const [selectedKey, setSelectedKey] = useState("");
   const [showResult, setShowResult] = useState(false);
 
+  // Estado para feedback
+  const [feedback, setFeedback] = useState("");
+
   const fingersDir = [
     { name: "PolegarDir", label: "Polegar Direito", short: "PD", className: "thumb" },
     { name: "IndicadorDir", label: "Indicador Direito", short: "ID", className: "index" },
@@ -98,6 +101,32 @@ export default function ConfigGlove() {
 
   const handleShowResult = () => setShowResult(true);
   const handleHideResult = () => setShowResult(false);
+
+  // Função para enviar configurações para o ESP
+  const handleSendToESP = async () => {
+    setFeedback("Enviando...");
+    try {
+      // Monte o objeto de configuração
+      const config = {
+        direita: mappingsDir,
+        esquerda: mappingsEsq,
+      };
+      // Troque o endereço pelo IP do seu ESP
+      const response = await fetch("http://localhost:3001/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if (response.ok) {
+        setFeedback("Configuração enviada com sucesso!");
+      } else {
+        setFeedback("Erro ao enviar configuração.");
+      }
+    } catch (err) {
+      setFeedback("Erro de conexão com o ESP.");
+    }
+    setTimeout(() => setFeedback(""), 3000);
+  };
 
   return (
     <div className="config-container" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
@@ -197,6 +226,19 @@ export default function ConfigGlove() {
             <option value="" disabled>Selecione uma nota...</option>
             {notes.map((note, i) => <option key={i} value={note}>{note}</option>)}
           </select>
+        </div>
+      )}
+
+      {/* Botão de salvar e feedback */}
+      <button
+        style={{ marginTop: 32, padding: "10px 28px", fontSize: 18, background: "#4f8cff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+        onClick={handleSendToESP}
+      >
+        Salvar configurações na luva
+      </button>
+      {feedback && (
+        <div style={{ marginTop: 12, fontWeight: "bold", color: feedback.includes("sucesso") ? "green" : "red" }}>
+          {feedback}
         </div>
       )}
     </div>

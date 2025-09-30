@@ -39,12 +39,7 @@
   align-items: center;
 }
 
-/* Efeito ao pressionar tecla branca */
-.white-key:active {
-  background: linear-gradient(to bottom, #e6e6e6, #d9d9d9);
-  transform: translateY(2px);
-  box-shadow: inset 0 -1px 3px rgba(0,0,0,0.25);
-}
+
 
 /* Numero da tecla */
 .key-number {
@@ -76,9 +71,82 @@
   transition: transform 0.08s ease, background 0.2s ease;
 }
 
-/* Efeito ao pressionar tecla preta */
-.black-key:active {
+
+
+.white-key.active {
+  background: linear-gradient(to bottom, #e6e6e6, #d9d9d9);
+  transform: translateY(2px);
+  box-shadow: inset 0 -1px 3px rgba(0,0,0,0.25);
+}
+
+.black-key.active {
   background: linear-gradient(to bottom, #333, #111);
   transform: translateY(2px);
   box-shadow: inset 0 -1px 3px rgba(0,0,0,0.6);
+}
+
+/* Estilo do controle deslizante de volume */
+.volume-slider {
+  width: 180px;
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #4f8cff 0%, #6ee7b7 100%);
+  outline: none;
+  -webkit-appearance: none;
+  margin: 0 8px;
+  transition: background 0.3s;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #4f8cff;
+  box-shadow: 0 2px 6px rgba(79,140,255,0.15);
+  cursor: pointer;
+  transition: border 0.2s;
+}
+.volume-slider:focus::-webkit-slider-thumb {
+  border: 2px solid #6ee7b7;
+}
+.volume-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #4f8cff;
+  box-shadow: 0 2px 6px rgba(79,140,255,0.15);
+  cursor: pointer;
+  transition: border 0.2s;
+}
+.volume-slider:focus::-moz-range-thumb {
+  border: 2px solid #6ee7b7;
+}
+.volume-slider::-ms-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #4f8cff;
+  box-shadow: 0 2px 6px rgba(79,140,255,0.15);
+  cursor: pointer;
+  transition: border 0.2s;
+}
+.volume-slider:focus::-ms-thumb {
+  border: 2px solid #6ee7b7;
+}
+.volume-slider::-ms-fill-lower {
+  background: #4f8cff;
+}
+.volume-slider::-ms-fill-upper {
+  background: #6ee7b7;
+}
+.volume-slider:focus {
+  outline: none;
+}
+
+.piano-main {
+  margin-top: 48px; /* ajuste o valor conforme desejar */
 }

@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import "./Piano.css";
 
 export default function Piano() {
   const [sampler, setSampler] = useState(null);
   const [keyBindings, setKeyBindings] = useState({});
+  const [activeNotes, setActiveNotes] = useState([]);
+  const [volume, setVolume] = useState(-12); 
+  const volumeNode = useRef(null);
 
   useEffect(() => {
+    volumeNode.current = new Tone.Volume(volume).toDestination();
+
     const newSampler = new Tone.Sampler({
       urls: {
         A0: "A0.mp3",
@@ -41,10 +46,21 @@ export default function Piano() {
         C8: "C8.mp3",
       },
       baseUrl: "https://tonejs.github.io/audio/salamander/",
-    }).toDestination();
+    }).connect(volumeNode.current);
 
     setSampler(newSampler);
+
+    return () => {
+      newSampler.disconnect();
+      volumeNode.current.dispose();
+    };
   }, []);
+
+  useEffect(() => {
+    if (volumeNode.current) {
+      volumeNode.current.volume.value = volume;
+    }
+  }, [volume]);
 
   useEffect(() => {
     const savedBindings = localStorage.getItem("gloveKeyBindings");
@@ -64,11 +80,24 @@ export default function Piano() {
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
       if (keyBindings[key]) {
-        playNote(keyBindings[key]);
+        const note = keyBindings[key];
+        playNote(note);
+        setActiveNotes((prev) => [...prev, note]);
+      }
+    };
+    const handleKeyUp = (e) => {
+      const key = e.key.toUpperCase();
+      if (keyBindings[key]) {
+        const note = keyBindings[key];
+        setActiveNotes((prev) => prev.filter((n) => n !== note));
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [sampler, keyBindings]);
 
   const whiteKeys = [
@@ -88,26 +117,56 @@ export default function Piano() {
   };
 
   return (
-    <div className="piano-container">
-      <div className="piano">
-        {whiteKeys.map((note, i) => (
-          <div
-            key={i}
-            className="white-key"
-            onClick={() => playNote(note)}
-          >
-            <span className="note-name">{note}</span>
-            {blackKeys[i] && (
-              <div
-                className="black-key"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playNote(blackKeys[i]);
-                }}
-              ></div>
-            )}
-          </div>
-        ))}
+    <div className="piano-main">
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+        <label htmlFor="volume-slider" style={{ marginRight: 12, fontWeight: 500, fontSize: 16, color: "#2d3e50" }}>
+          Volume
+        </label>
+        <input
+          id="volume-slider"
+          className="volume-slider"
+          type="range"
+          min={-48}
+          max={0}
+          value={volume}
+          onChange={e => setVolume(Number(e.target.value))}
+        />
+      </div>
+      <div className="piano-container">
+        <div className="piano">
+          {whiteKeys.map((note, i) => (
+            <div
+              key={i}
+              className={`white-key${activeNotes.includes(note) ? " active" : ""}`}
+              onMouseDown={() => {
+                playNote(note);
+                setActiveNotes((prev) => [...prev, note]);
+              }}
+              onMouseUp={() => setActiveNotes((prev) => prev.filter((n) => n !== note))}
+              onMouseLeave={() => setActiveNotes((prev) => prev.filter((n) => n !== note))}
+            >
+              <span className="note-name">{note}</span>
+              {blackKeys[i] && (
+                <div
+                  className={`black-key${activeNotes.includes(blackKeys[i]) ? " active" : ""}`}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    playNote(blackKeys[i]);
+                    setActiveNotes((prev) => [...prev, blackKeys[i]]);
+                  }}
+                  onMouseUp={(e) => {
+                    e.stopPropagation();
+                    setActiveNotes((prev) => prev.filter((n) => n !== blackKeys[i]));
+                  }}
+                  onMouseLeave={(e) => {
+                    e.stopPropagation();
+                    setActiveNotes((prev) => prev.filter((n) => n !== blackKeys[i]));
+                  }}
+                ></div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

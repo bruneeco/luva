@@ -1,0 +1,52 @@
+{
+  "config": [
+    {
+      "id": "7a1b",
+      "direita": {
+        "PolegarDir": "C#5",
+        "IndicadorDir": "D#5",
+        "MédioDir": "C#5",
+        "AnelarDir": "C#5",
+        "MindinhoDir": "C5"
+      },
+      "esquerda": {
+        "s": "C#5",
+        "AnelarEsq": "E5",
+        "MédioEsq": "G5",
+        "IndicadorEsq": "D#5"
+      }
+    },
+    {
+      "id": "f05f",
+      "direita": {
+        "PolegarDir": "C#5",
+        "IndicadorDir": "D#5",
+        "MédioDir": "C#5",
+        "AnelarDir": "A5",
+        "MindinhoDir": "C5"
+      },
+      "esquerda": {
+        "s": "C#5",
+        "AnelarEsq": "E5",
+        "MédioEsq": "G5",
+        "IndicadorEsq": "D#5"
+      }
+    },
+    {
+      "id": "5105",
+      "direita": {
+        "PolegarDir": "C#5",
+        "IndicadorDir": "D#5",
+        "MédioDir": "C#5",
+        "AnelarDir": "A5",
+        "MindinhoDir": "G5"
+      },
+      "esquerda": {
+        "s": "C#5",
+        "AnelarEsq": "E5",
+        "MédioEsq": "G5",
+        "IndicadorEsq": "D#5"
+      }
+    }
+  ]
+}

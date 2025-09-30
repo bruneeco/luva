@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import Navbar from "./components/Navbar";
 import Piano from "./components/Piano";
 import Ajuda from "./components/Ajuda";
@@ -8,32 +8,14 @@ import ConfigGlove from "./components/ConfigGlove"; // página de configuraçõe
 import "./App.css";
 
 function Home({ mappingsDir, mappingsEsq }) {
-  return (
-    <main className="content">
-      <h1>Teclado virtual</h1>
+  const navigate = useNavigate();
 
-      {/* Barra de status */}
-      <div className="status-bar">
-        <div className="status">
-          <span className="status-dot"></span>
-          <span>Conectado</span>
-        </div>
-        <div className="volume">
-          <span role="img" aria-label="volume">🔊</span>
-          <input type="range" />
-        </div>
-      </div>
+  // Redireciona automaticamente para /piano ao montar
+  React.useEffect(() => {
+    navigate("/piano");
+  }, [navigate]);
 
-      {/* Piano agora recebe mapeamentos */}
-      <Piano mappingsDir={mappingsDir} mappingsEsq={mappingsEsq} />
-
-      {/* Caixas de informações */}
-      <div className="info-boxes">
-        <InfoBox text="Aqui teremos algumas informações sobre o piano virtual e como ele funciona." />
-        <InfoBox text="Aqui teremos algumas informações sobre o piano virtual e como ele funciona." />
-      </div>
-    </main>
-  );
+  return null; // Não renderiza nada, só redireciona
 }
 
 export default function App() {
