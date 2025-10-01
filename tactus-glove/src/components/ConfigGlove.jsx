@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import luvaImgDir from "../assets/luvaDir.svg";
 import luvaImgEsq from "../assets/luvaEsq.svg";
 import "./ConfigGlove.css";
@@ -127,6 +127,19 @@ export default function ConfigGlove() {
     }
     setTimeout(() => setFeedback(""), 3000);
   };
+
+  // Carrega a última configuração ao iniciar
+  useEffect(() => {
+    fetch("http://localhost:3001/config")
+      .then(res => res.json())
+      .then(arr => {
+        const ultimaConfig = arr[arr.length - 1]; // <-- sempre a mais recente
+        if (ultimaConfig) {
+          setMappingsDir(ultimaConfig.direita);
+          setMappingsEsq(ultimaConfig.esquerda);
+        }
+      });
+  }, []);
 
   return (
     <div className="config-container" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
