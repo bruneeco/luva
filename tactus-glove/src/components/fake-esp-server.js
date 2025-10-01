@@ -29,7 +29,6 @@ app.listen(PORT, () => {
 fetch('http://localhost:3002/ultimaConfig')
   .then(res => res.json())
   .then(config => {
-    // Use a configuração normalmente
     console.log(config);
   });
 

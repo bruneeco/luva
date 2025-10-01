@@ -2,16 +2,25 @@ import React, { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import "./Piano.css";
 
+// Componente principal do piano virtual
 export default function Piano() {
+  // Estado para o sampler de áudio (Tone.js)
   const [sampler, setSampler] = useState(null);
+  // Estado para os bindings de teclas do teclado físico para notas
   const [keyBindings, setKeyBindings] = useState({});
+  // Estado para as notas atualmente ativas (pressionadas)
   const [activeNotes, setActiveNotes] = useState([]);
+  // Estado para o volume do piano (em dB)
   const [volume, setVolume] = useState(-12); 
+  // Referência para o node de volume do Tone.js
   const volumeNode = useRef(null);
 
+  // Inicializa o sampler e o node de volume ao montar o componente
   useEffect(() => {
+    // Cria o node de volume e conecta à saída de áudio
     volumeNode.current = new Tone.Volume(volume).toDestination();
 
+    // Cria o sampler com os samples das notas
     const newSampler = new Tone.Sampler({
       urls: {
         A0: "A0.mp3",
@@ -50,18 +59,21 @@ export default function Piano() {
 
     setSampler(newSampler);
 
+    // Limpeza ao desmontar: desconecta sampler e libera volumeNode
     return () => {
       newSampler.disconnect();
       volumeNode.current.dispose();
     };
   }, []);
 
+  // Atualiza o volume do node de volume sempre que o estado volume mudar
   useEffect(() => {
     if (volumeNode.current) {
       volumeNode.current.volume.value = volume;
     }
   }, [volume]);
 
+  // Carrega os bindings das teclas do localStorage ao montar
   useEffect(() => {
     const savedBindings = localStorage.getItem("gloveKeyBindings");
     if (savedBindings) {
@@ -69,14 +81,17 @@ export default function Piano() {
     }
   }, []);
 
+  // Função para tocar uma nota usando o sampler
   const playNote = (note) => {
     if (sampler) {
-      Tone.start();
+      Tone.start(); // Garante que o contexto de áudio está ativo
       sampler.triggerAttackRelease(note, "2n");
     }
   };
 
+  // Adiciona listeners para pressionar e soltar teclas do teclado físico
   useEffect(() => {
+    // Quando uma tecla é pressionada
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
       if (keyBindings[key]) {
@@ -85,6 +100,7 @@ export default function Piano() {
         setActiveNotes((prev) => [...prev, note]);
       }
     };
+    // Quando uma tecla é solta
     const handleKeyUp = (e) => {
       const key = e.key.toUpperCase();
       if (keyBindings[key]) {
@@ -94,17 +110,20 @@ export default function Piano() {
     };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    // Remove listeners ao desmontar
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [sampler, keyBindings]);
 
+  // Lista das teclas brancas do piano (ordem importa para renderização)
   const whiteKeys = [
     "C4", "D4", "E4", "F4", "G4", "A4", "B4",
     "C5", "D5", "E5", "F5", "G5", "A5", "B5"
   ];
 
+  // Mapeamento das posições das teclas pretas (índice -> nota)
   const blackKeys = {
     1: "C#4",
     2: "D#4",
@@ -116,8 +135,10 @@ export default function Piano() {
     11: "F#5",
   };
 
+  // Renderização do componente do piano
   return (
     <div className="piano-main">
+      {/* Barra de volume estilizada */}
       <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
         <label htmlFor="volume-slider" style={{ marginRight: 12, fontWeight: 500, fontSize: 16, color: "#2d3e50" }}>
           Volume
@@ -132,8 +153,10 @@ export default function Piano() {
           onChange={e => setVolume(Number(e.target.value))}
         />
       </div>
+      {/* Container centralizado do piano */}
       <div className="piano-container">
         <div className="piano">
+          {/* Renderiza as teclas brancas e, se houver, as pretas sobrepostas */}
           {whiteKeys.map((note, i) => (
             <div
               key={i}
@@ -145,7 +168,9 @@ export default function Piano() {
               onMouseUp={() => setActiveNotes((prev) => prev.filter((n) => n !== note))}
               onMouseLeave={() => setActiveNotes((prev) => prev.filter((n) => n !== note))}
             >
+              {/* Nome da nota na tecla branca */}
               <span className="note-name">{note}</span>
+              {/* Se existir tecla preta nessa posição, renderiza sobreposta */}
               {blackKeys[i] && (
                 <div
                   className={`black-key${activeNotes.includes(blackKeys[i]) ? " active" : ""}`}
