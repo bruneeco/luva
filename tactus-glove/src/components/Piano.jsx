@@ -118,11 +118,11 @@ export default function Piano() {
         const note = keyBindings[key];
         pressedKeys.current.delete(key);
         setActiveNotes((prev) => prev.filter((n) => n !== note));
+        // Não chame triggerRelease aqui!
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    // Remove listeners ao desmontar
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
