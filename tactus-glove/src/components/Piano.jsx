@@ -15,6 +15,9 @@ export default function Piano() {
   // Referência para o node de volume do Tone.js
   const volumeNode = useRef(null);
 
+  // Mantém controle das teclas do teclado físico que estão pressionadas
+  const pressedKeys = useRef(new Set());
+
   // Inicializa o sampler e o node de volume ao montar o componente
   useEffect(() => {
     // Cria o node de volume e conecta à saída de áudio
@@ -81,30 +84,39 @@ export default function Piano() {
     }
   }, []);
 
-  // Função para tocar uma nota usando o sampler
-  const playNote = (note) => {
+  // Toca a nota (sustain) enquanto pressionada
+  const triggerAttack = (note) => {
     if (sampler) {
-      Tone.start(); // Garante que o contexto de áudio está ativo
-      sampler.triggerAttackRelease(note, "2n");
+      Tone.start();
+      sampler.triggerAttack(note);
     }
   };
 
-  // Adiciona listeners para pressionar e soltar teclas do teclado físico
+  // Solta a nota (encerra sustain)
+  const triggerRelease = (note) => {
+    if (sampler) {
+      sampler.triggerRelease(note);
+    }
+  };
+
+  // Lógica para teclado físico: só dispara se a tecla não estiver pressionada
   useEffect(() => {
-    // Quando uma tecla é pressionada
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
       if (keyBindings[key]) {
         const note = keyBindings[key];
-        playNote(note);
-        setActiveNotes((prev) => [...prev, note]);
+        if (!pressedKeys.current.has(key)) {
+          pressedKeys.current.add(key);
+          triggerAttack(note);
+          setActiveNotes((prev) => [...prev, note]);
+        }
       }
     };
-    // Quando uma tecla é solta
     const handleKeyUp = (e) => {
       const key = e.key.toUpperCase();
       if (keyBindings[key]) {
         const note = keyBindings[key];
+        pressedKeys.current.delete(key);
         setActiveNotes((prev) => prev.filter((n) => n !== note));
       }
     };
@@ -135,6 +147,9 @@ export default function Piano() {
     11: "F#5",
   };
 
+  // Mantém controle das teclas do mouse pressionadas (para não disparar várias vezes)
+  const pressedMouseNotes = useRef(new Set());
+
   // Renderização do componente do piano
   return (
     <div className="piano-main">
@@ -162,11 +177,21 @@ export default function Piano() {
               key={i}
               className={`white-key${activeNotes.includes(note) ? " active" : ""}`}
               onMouseDown={() => {
-                playNote(note);
-                setActiveNotes((prev) => [...prev, note]);
+                // Só dispara se não estiver pressionada
+                if (!pressedMouseNotes.current.has(note)) {
+                  pressedMouseNotes.current.add(note);
+                  triggerAttack(note);
+                  setActiveNotes((prev) => [...prev, note]);
+                }
               }}
-              onMouseUp={() => setActiveNotes((prev) => prev.filter((n) => n !== note))}
-              onMouseLeave={() => setActiveNotes((prev) => prev.filter((n) => n !== note))}
+              onMouseUp={() => {
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+              onMouseLeave={() => {
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
             >
               {/* Nome da nota na tecla branca */}
               <span className="note-name">{note}</span>
@@ -176,15 +201,20 @@ export default function Piano() {
                   className={`black-key${activeNotes.includes(blackKeys[i]) ? " active" : ""}`}
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    playNote(blackKeys[i]);
-                    setActiveNotes((prev) => [...prev, blackKeys[i]]);
+                    if (!pressedMouseNotes.current.has(blackKeys[i])) {
+                      pressedMouseNotes.current.add(blackKeys[i]);
+                      triggerAttack(blackKeys[i]);
+                      setActiveNotes((prev) => [...prev, blackKeys[i]]);
+                    }
                   }}
                   onMouseUp={(e) => {
                     e.stopPropagation();
+                    pressedMouseNotes.current.delete(blackKeys[i]);
                     setActiveNotes((prev) => prev.filter((n) => n !== blackKeys[i]));
                   }}
                   onMouseLeave={(e) => {
                     e.stopPropagation();
+                    pressedMouseNotes.current.delete(blackKeys[i]);
                     setActiveNotes((prev) => prev.filter((n) => n !== blackKeys[i]));
                   }}
                 ></div>
