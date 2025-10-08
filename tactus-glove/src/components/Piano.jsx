@@ -2,21 +2,36 @@ import React, { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import "./Piano.css";
 
+// Todas as notas do piano (brancas e pretas, ordem cromática)
+const allNotes = [
+  "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+  "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5"
+];
+
+// Teclas do teclado físico para vincular (ordem deve bater com allNotes)
+const keyboardKeys = [
+  "A", "W", "S", "E", "D", "F", "T", "G", "Y", "H", "U", "J",
+  "K", "O", "L", "P", ";", "Z", "X", "C", "V", "B", "N", "M"
+];
+
+// Mapeia nota para tecla do teclado físico
+const noteToKey = {};
+allNotes.forEach((note, i) => noteToKey[note] = keyboardKeys[i] || "");
+
 // Componente principal do piano virtual
 export default function Piano() {
   // Estado para o sampler de áudio (Tone.js)
   const [sampler, setSampler] = useState(null);
-  // Estado para os bindings de teclas do teclado físico para notas
-  const [keyBindings, setKeyBindings] = useState({});
   // Estado para as notas atualmente ativas (pressionadas)
   const [activeNotes, setActiveNotes] = useState([]);
   // Estado para o volume do piano (em dB)
   const [volume, setVolume] = useState(-12); 
   // Referência para o node de volume do Tone.js
   const volumeNode = useRef(null);
-
   // Mantém controle das teclas do teclado físico que estão pressionadas
   const pressedKeys = useRef(new Set());
+  // Mantém controle das teclas do mouse pressionadas (para não disparar várias vezes)
+  const pressedMouseNotes = useRef(new Set());
 
   // Inicializa o sampler e o node de volume ao montar o componente
   useEffect(() => {
@@ -76,14 +91,6 @@ export default function Piano() {
     }
   }, [volume]);
 
-  // Carrega os bindings das teclas do localStorage ao montar
-  useEffect(() => {
-    const savedBindings = localStorage.getItem("gloveKeyBindings");
-    if (savedBindings) {
-      setKeyBindings(JSON.parse(savedBindings));
-    }
-  }, []);
-
   // Toca a nota (sustain) enquanto pressionada
   const triggerAttack = (note) => {
     if (sampler) {
@@ -92,19 +99,15 @@ export default function Piano() {
     }
   };
 
-  // Solta a nota (encerra sustain)
-  const triggerRelease = (note) => {
-    if (sampler) {
-      sampler.triggerRelease(note);
-    }
-  };
+  // Não chama triggerRelease para sustain infinito
 
-  // Lógica para teclado físico: só dispara se a tecla não estiver pressionada
+  // Teclado físico: só dispara se a tecla não estiver pressionada
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
-      if (keyBindings[key]) {
-        const note = keyBindings[key];
+      // Procura a nota correspondente à tecla pressionada
+      const note = allNotes[keyboardKeys.indexOf(key)];
+      if (note) {
         if (!pressedKeys.current.has(key)) {
           pressedKeys.current.add(key);
           triggerAttack(note);
@@ -114,11 +117,10 @@ export default function Piano() {
     };
     const handleKeyUp = (e) => {
       const key = e.key.toUpperCase();
-      if (keyBindings[key]) {
-        const note = keyBindings[key];
+      const note = allNotes[keyboardKeys.indexOf(key)];
+      if (note) {
         pressedKeys.current.delete(key);
         setActiveNotes((prev) => prev.filter((n) => n !== note));
-        // Não chame triggerRelease aqui!
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -127,28 +129,17 @@ export default function Piano() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [sampler, keyBindings]);
+  }, [sampler]);
 
-  // Lista das teclas brancas do piano (ordem importa para renderização)
-  const whiteKeys = [
-    "C4", "D4", "E4", "F4", "G4", "A4", "B4",
-    "C5", "D5", "E5", "F5", "G5", "A5", "B5"
-  ];
+  // Renderização do piano: separa brancas e pretas para visual
+  const whiteNotes = allNotes.filter(n => !n.includes("#"));
+  const blackNotes = allNotes.filter(n => n.includes("#"));
 
-  // Mapeamento das posições das teclas pretas (índice -> nota)
-  const blackKeys = {
-    1: "C#4",
-    2: "D#4",
-    4: "F#4",
-    5: "G#4",
-    6: "A#4",
-    8: "C#5",
-    9: "D#5",
-    11: "F#5",
+  // Para posicionar as pretas corretamente sobre as brancas
+  const blackKeyOffsets = {
+    "C#4": 0, "D#4": 1, "F#4": 3, "G#4": 4, "A#4": 5,
+    "C#5": 7, "D#5": 8, "F#5": 10, "G#5": 11, "A#5": 12,
   };
-
-  // Mantém controle das teclas do mouse pressionadas (para não disparar várias vezes)
-  const pressedMouseNotes = useRef(new Set());
 
   // Renderização do componente do piano
   return (
@@ -170,11 +161,11 @@ export default function Piano() {
       </div>
       {/* Container centralizado do piano */}
       <div className="piano-container">
-        <div className="piano">
-          {/* Renderiza as teclas brancas e, se houver, as pretas sobrepostas */}
-          {whiteKeys.map((note, i) => (
+        <div className="piano" style={{ position: "relative" }}>
+          {/* Teclas brancas */}
+          {whiteNotes.map((note, i) => (
             <div
-              key={i}
+              key={note}
               className={`white-key${activeNotes.includes(note) ? " active" : ""}`}
               onMouseDown={() => {
                 // Só dispara se não estiver pressionada
@@ -193,32 +184,39 @@ export default function Piano() {
                 setActiveNotes((prev) => prev.filter((n) => n !== note));
               }}
             >
-              {/* Nome da nota na tecla branca */}
+              {/* Mostra a nota e a tecla vinculada */}
               <span className="note-name">{note}</span>
-              {/* Se existir tecla preta nessa posição, renderiza sobreposta */}
-              {blackKeys[i] && (
-                <div
-                  className={`black-key${activeNotes.includes(blackKeys[i]) ? " active" : ""}`}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    if (!pressedMouseNotes.current.has(blackKeys[i])) {
-                      pressedMouseNotes.current.add(blackKeys[i]);
-                      triggerAttack(blackKeys[i]);
-                      setActiveNotes((prev) => [...prev, blackKeys[i]]);
-                    }
-                  }}
-                  onMouseUp={(e) => {
-                    e.stopPropagation();
-                    pressedMouseNotes.current.delete(blackKeys[i]);
-                    setActiveNotes((prev) => prev.filter((n) => n !== blackKeys[i]));
-                  }}
-                  onMouseLeave={(e) => {
-                    e.stopPropagation();
-                    pressedMouseNotes.current.delete(blackKeys[i]);
-                    setActiveNotes((prev) => prev.filter((n) => n !== blackKeys[i]));
-                  }}
-                ></div>
-              )}
+              <span className="key-number">{noteToKey[note]}</span>
+            </div>
+          ))}
+          {/* Teclas pretas sobrepostas */}
+          {blackNotes.map((note) => (
+            <div
+              key={note}
+              className={`black-key${activeNotes.includes(note) ? " active" : ""}`}
+              style={{ left: `${(blackKeyOffsets[note] ?? 0) * 62 + 40}px` }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                if (!pressedMouseNotes.current.has(note)) {
+                  pressedMouseNotes.current.add(note);
+                  triggerAttack(note);
+                  setActiveNotes((prev) => [...prev, note]);
+                }
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+              onMouseLeave={(e) => {
+                e.stopPropagation();
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+            >
+              {/* Mostra a nota e a tecla vinculada */}
+              <span className="note-name">{note}</span>
+              <span className="key-number">{noteToKey[note]}</span>
             </div>
           ))}
         </div>
