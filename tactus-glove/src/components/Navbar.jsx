@@ -1,18 +1,32 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../assets/logo.png"; 
 
 const Navbar = () => {
+  const location = useLocation();
+  // Map pathname to page name
+  const pages = [
+    { path: "/piano", label: "Teclado" },
+    { path: "/configuracoes", label: "Configurações" },
+    { path: "/ajuda", label: "Sobre" },
+  ];
   return (
     <nav className="navbar">
       <div className="logo">
         <img src={logo} alt="Tactus Glove" className="logo-img" />
       </div>
       <ul className="nav-links">
-        <li><Link to="/piano" className="active">Teclado virtual</Link></li>
-        <li><Link to="/configuracoes">Configurações</Link></li>
-        <li><Link to="/ajuda">Ajuda</Link></li>
+        {pages.map(page => (
+          <li key={page.path}>
+            <Link
+              to={page.path}
+              className={location.pathname === page.path ? "nav-active" : ""}
+            >
+              {page.label}
+            </Link>
+          </li>
+        ))}
       </ul>
     </nav>
   );

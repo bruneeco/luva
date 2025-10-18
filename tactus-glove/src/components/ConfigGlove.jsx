@@ -1,46 +1,34 @@
 import React, { useState, useEffect } from "react";
 import luvaImgDir from "../assets/luvaDir.svg";
 import luvaImgEsq from "../assets/luvaEsq.svg";
+import { useGlove } from "../context/GloveContext";
 import "./ConfigGlove.css";
 
 // Componente principal de configuração da luva
 export default function ConfigGlove() {
+  // Hook do contexto da luva
+  const {
+    selectedScale,
+    fingerMapping,
+    configMode,
+    orderedScales,
+    allNotes,
+    applyScalePreset,
+    updateFingerNote,
+    getFingerKey,
+    getFingerNote,
+  } = useGlove();
+
   // Estado para o dedo selecionado da mão direita
   const [selectedFingerDir, setSelectedFingerDir] = useState(null);
-
-  // Estado para o mapeamento da mão direita (carrega do localStorage ou usa padrão)
-  const [mappingsDir, setMappingsDir] = useState(() => {
-    return JSON.parse(localStorage.getItem("gloveMappingsDir")) || {
-      PolegarDir: "",
-      IndicadorDir: "G5",
-      MédioDir: "A5",
-      AnelarDir: "B5",
-      MindinhoDir: "C6",
-    };
-  });
-
-  // Estado para o dedo selecionado da mão esquerda
+  // Estado para o dedo selecionado da mão esquerda  
   const [selectedFingerEsq, setSelectedFingerEsq] = useState(null);
-
-  // Estado para o mapeamento da mão esquerda (carrega do localStorage ou usa padrão)
-  const [mappingsEsq, setMappingsEsq] = useState(() => {
-    return JSON.parse(localStorage.getItem("gloveMappingsEsq")) || {
-      PolegarEsq: "",
-      IndicadorEsq: "C5",
-      MédioEsq: "D5",
-      AnelarEsq: "E5",
-      MindinhoEsq: "F5",
-    };
-  });
-
   // Estado para a nota selecionada no select
   const [selectedKey, setSelectedKey] = useState("");
-  // Estado para mostrar/ocultar o resumo das configurações
-  const [showResult, setShowResult] = useState(false);
   // Estado para feedback visual ao usuário (ex: envio para ESP)
   const [feedback, setFeedback] = useState("");
 
-  // Lista de dedos da mão direita (ajuste aqui caso mude a ordem ou nomes)
+  // Lista de dedos da mão direita
   const fingersDir = [
     { name: "PolegarDir", label: "Polegar Direito", short: "PD", className: "thumb" },
     { name: "IndicadorDir", label: "Indicador Direito", short: "ID", className: "index" },
@@ -49,7 +37,7 @@ export default function ConfigGlove() {
     { name: "MindinhoDir", label: "Mindinho Direito", short: "DD", className: "pinky" },
   ];
 
-  // Lista de dedos da mão esquerda (ajuste aqui caso mude a ordem ou nomes)
+  // Lista de dedos da mão esquerda
   const fingersEsq = [
     { name: "PolegarEsq", label: "Polegar Esquerdo", short: "PE", className: "thumb" },
     { name: "IndicadorEsq", label: "Indicador Esquerdo", short: "IE", className: "index" },
@@ -58,223 +46,232 @@ export default function ConfigGlove() {
     { name: "MindinhoEsq", label: "Mindinho Esquerdo", short: "DE", className: "pinky" },
   ];
 
-  // Lista de notas disponíveis para seleção (ajuste se quiser mais/menos notas)
-  const notes = [
-    "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
-    "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6"
-  ];
-
-  // Teclas do teclado físico associadas às notas (ordem importa!)
-  const keyboardKeys = [
-    "Q","W","E","R","T","Y","U","I","O","P",
-    "A","S","D","F","G","H","J","K","L",
-    "Z","X","C","V","B"
-  ];
-
-  // Mapeamento nota -> tecla do teclado (usado para exibir e salvar bindings)
-  const noteToKey = {};
-  notes.forEach((note, i) => noteToKey[note] = keyboardKeys[i] || "");
+  // Mapeamento de notas para teclas do piano visual
+  const noteToKey = {
+    C5: "Q", "C#5": "2", D5: "W", "D#5": "3", E5: "E", F5: "R",
+    "F#5": "5", G5: "T", "G#5": "6", A5: "Y", "A#5": "7", B5: "U",
+    C6: "I", "C#6": "9", D6: "O", "D#6": "0", E6: "P", F6: "[",
+    "F#6": "=", G6: "]", "G#6": "\\", A6: "A", "A#6": "S", B6: "D",
+  };
 
   // Identifica qual dedo está selecionado (direita ou esquerda)
   const selectedFinger = selectedFingerDir || selectedFingerEsq;
   const isDir = !!selectedFingerDir;
   const isEsq = !!selectedFingerEsq;
 
+  // Verifica se o modo personalizado está ativo
+  const isCustomMode = configMode === 'custom' || selectedScale === 'Personalizado';
+
   // Atualiza o mapeamento do dedo selecionado ao escolher uma nota
   const handleKeyChange = (e) => {
-    setSelectedKey(e.target.value);
-    if (!selectedFinger) return;
+    const newNote = e.target.value;
+    setSelectedKey(newNote);
+    
+    if (!selectedFinger || !isCustomMode) return;
 
-    if (isDir) {
-      // Atualiza o mapeamento da mão direita
-      const updated = { ...mappingsDir, [selectedFinger]: e.target.value };
-      setMappingsDir(updated);
-      localStorage.setItem("gloveMappingsDir", JSON.stringify(updated));
-    } else if (isEsq) {
-      // Atualiza o mapeamento da mão esquerda
-      const updated = { ...mappingsEsq, [selectedFinger]: e.target.value };
-      setMappingsEsq(updated);
-      localStorage.setItem("gloveMappingsEsq", JSON.stringify(updated));
-    }
-
-    // Atualiza o binding geral (usado pelo piano para saber qual tecla aciona qual nota)
-    const allMappings = { ...mappingsDir, ...mappingsEsq };
-    const keyBindings = {};
-    Object.keys(allMappings).forEach(f => {
-      if (allMappings[f]) {
-        keyBindings[noteToKey[allMappings[f]]] = allMappings[f];
-      }
-    });
-    localStorage.setItem("gloveKeyBindings", JSON.stringify(keyBindings));
-
-    // Limpa seleção do dedo após salvar
-    setSelectedFingerDir(null);
-    setSelectedFingerEsq(null);
+    updateFingerNote(selectedFinger, newNote);
   };
 
-  // Mostra o resumo das configurações
-  const handleShowResult = () => setShowResult(true);
-  // Esconde o resumo das configurações
-  const handleHideResult = () => setShowResult(false);
+  // Função para lidar com a seleção de um dedo
+  const handleFingerSelect = (fingerName, isRight) => {
+    // Só permite seleção se estiver no modo personalizado
+    if (!isCustomMode) return;
 
-  // Envia as configurações atuais para o ESP (ou servidor fake)
-  const handleSendToESP = async () => {
-    setFeedback("Enviando...");
-    try {
-      // Monta o objeto de configuração para enviar
-      const config = {
-        direita: mappingsDir,
-        esquerda: mappingsEsq,
-      };
-      // Troque o endereço pelo IP do seu ESP ou servidor fake
-      const response = await fetch("http://localhost:3001/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
-      });
-      if (response.ok) {
-        setFeedback("Configuração enviada com sucesso!");
-      } else {
-        setFeedback("Erro ao enviar configuração.");
-      }
-    } catch (err) {
-      setFeedback("Erro de conexão com o ESP.");
+    if (isRight) {
+      setSelectedFingerDir(fingerName);
+      setSelectedFingerEsq(null);
+    } else {
+      setSelectedFingerEsq(fingerName);
+      setSelectedFingerDir(null);
     }
-    // Limpa feedback após 3 segundos
+    
+    const currentNote = getFingerNote(fingerName);
+    setSelectedKey(currentNote);
+  };
+
+  // Função para aplicar um preset de escala
+  const handleScalePresetSelect = (scaleName) => {
+    if (scaleName === 'Personalizado') {
+      // Ativa modo personalizado sem alterar mapeamento atual
+      setSelectedFingerDir(null);
+      setSelectedFingerEsq(null);
+      setSelectedKey("");
+    } else {
+      // Aplica preset de escala
+      applyScalePreset(scaleName);
+      setSelectedFingerDir(null);
+      setSelectedFingerEsq(null);
+      setSelectedKey("");
+    }
+  };
+
+  // Função para confirmar configurações
+  const handleConfirm = async () => {
+    try {
+      setFeedback("Salvando configurações...");
+      
+      // Converte o mapeamento de dedos para o formato esperado pelo ESP32
+      const espMapping = {};
+      Object.keys(fingerMapping).forEach(finger => {
+        const key = getFingerKey(finger);
+        const note = getFingerNote(finger);
+        if (key && note) {
+          espMapping[key] = note;
+        }
+      });
+
+      // Opcional: enviar para ESP32
+      try {
+        const response = await fetch("http://192.168.4.1/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(espMapping),
+        });
+
+        if (response.ok) {
+          setFeedback("Configurações confirmadas e enviadas!");
+        } else {
+          setFeedback("Configurações salvas (ESP32 não disponível)");
+        }
+      } catch (error) {
+        setFeedback("Configurações salvas localmente");
+      }
+    } catch (error) {
+      console.error("Erro:", error);
+      setFeedback("Erro ao salvar configurações");
+    }
+
     setTimeout(() => setFeedback(""), 3000);
   };
 
-  // Ao montar, carrega a última configuração salva do servidor (útil para manter sincronizado)
+  // Função para cancelar alterações
+  const handleCancel = () => {
+    // Recarrega configurações do localStorage
+    const savedMapping = localStorage.getItem('gloveFingerMapping');
+    const savedScale = localStorage.getItem('gloveSelectedScale');
+    const savedMode = localStorage.getItem('gloveConfigMode');
+    
+    if (savedMapping) {
+      // Se houver configurações salvas, reverte para elas
+      const parsedMapping = JSON.parse(savedMapping);
+      setFingerMapping(parsedMapping);
+      if (savedScale) setSelectedScale(savedScale);
+      if (savedMode) setConfigMode(savedMode);
+    }
+    
+    // Limpa seleções
+    setSelectedFingerDir(null);
+    setSelectedFingerEsq(null);
+    setSelectedKey("");
+    setFeedback("Alterações canceladas");
+    
+    setTimeout(() => setFeedback(""), 2000);
+  };
+
+  // Limpa feedback após um tempo
   useEffect(() => {
-    fetch("http://localhost:3001/config")
-      .then(res => res.json())
-      .then(arr => {
-        const ultimaConfig = arr[arr.length - 1]; // Pega sempre a mais recente
-        if (ultimaConfig) {
-          setMappingsDir(ultimaConfig.direita);
-          setMappingsEsq(ultimaConfig.esquerda);
-        }
-      });
-  }, []);
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
-  // Renderização do componente
   return (
-    <div className="config-container" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
-      <h2 style={{ textAlign:"center" }}>Configurações da luva</h2>
-
-      <div className="hands-row" style={{ display:"flex", flexDirection:"row", alignItems:"center", justifyContent:"center" }}>
-        {/* Mão Esquerda: renderiza botões para cada dedo */}
-        <div style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", marginRight:48 }}>
-          <img src={luvaImgEsq} alt="Luva Esquerda" className="hand"/>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
-            {fingersEsq.map(({ name, short, className }) => (
-              <button
-                key={name}
-                className={`finger ${className} ${selectedFingerEsq === name ? "selected" : ""}`}
-                onClick={() => setSelectedFingerEsq(name)}
-                style={{ margin:"6px 0" }}
-              >
-                {/* Mostra nota selecionada ou abreviação do dedo */}
-                {mappingsEsq[name] ? (
-                  <span className="selected-note">
-                    {mappingsEsq[name]} ({noteToKey[mappingsEsq[name]]})
-                  </span>
-                ) : short}
-              </button>
-            ))}
-          </div>
-          <span style={{ marginTop:8, fontWeight:"bold" }}>Mão Esquerda</span>
-        </div>
-
-        {/* Mão Direita: renderiza botões para cada dedo */}
-        <div style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", marginLeft:48 }}>
-          <img src={luvaImgDir} alt="Luva Direita" className="hand"/>
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
-            {fingersDir.map(({ name, short, className }) => (
-              <button
-                key={name}
-                className={`finger ${className} ${selectedFingerDir === name ? "selected" : ""}`}
-                onClick={() => setSelectedFingerDir(name)}
-                style={{ margin:"6px 0" }}
-              >
-                {/* Mostra nota selecionada ou abreviação do dedo */}
-                {mappingsDir[name] ? (
-                  <span className="selected-note">
-                    {mappingsDir[name]} ({noteToKey[mappingsDir[name]]})
-                  </span>
-                ) : short}
-              </button>
-            ))}
-          </div>
-          <span style={{ marginTop:8, fontWeight:"bold" }}>Mão Direita</span>
-        </div>
-
-        {/* Área lateral para mostrar o resumo das configurações */}
-        <div style={{ marginLeft:32, minWidth:250, display:"flex", flexDirection:"column", alignItems:"center" }}>
-          {!showResult ? (
-            <button style={{ marginBottom:16, padding:"8px 16px", fontSize:16 }} onClick={handleShowResult}>
-              Mostrar teclas e notas dos dedos
+    <div className="config-layout">
+      {/* Sidebar com presets de escalas */}
+      <div className="presets-sidebar">
+        <h2>Presets de Escalas</h2>
+        <div className="presets-list">
+          {/* Opção Personalizado */}
+          
+          
+          {/* Escalas predefinidas */}
+          {orderedScales.map(scale => (
+            <button
+              key={scale}
+              className={`preset-button ${selectedScale === scale && configMode === 'preset' ? 'active' : ''}`}
+              onClick={() => handleScalePresetSelect(scale)}
+            >
+              {scale}
             </button>
-          ) : (
-            <button style={{ marginBottom:16, padding:"8px 16px", fontSize:16 }} onClick={handleHideResult}>
-              Fechar respostas
-            </button>
-          )}
-
-          {/* Mostra o resumo das notas e teclas de cada dedo */}
-          {showResult && (
-            <div className="teclas-mapeadas" style={{ marginTop:0, textAlign:"center" }}>
-              <h4>Mão Esquerda</h4>
-              {fingersEsq.map(({ name, label }) => (
-                <p key={name}>{label}: {mappingsEsq[name]} ({noteToKey[mappingsEsq[name]]})</p>
-              ))}
-              <h4 style={{ marginTop:16 }}>Mão Direita</h4>
-              {fingersDir.map(({ name, label }) => (
-                <p key={name}>{label}: {mappingsDir[name]} ({noteToKey[mappingsDir[name]]})</p>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* Sidebar para selecionar a nota de um dedo */}
-      {selectedFinger && (
-        <div className="config-sidebar">
-          <button
-            className="close-sidebar"
-            onClick={() => { setSelectedFingerDir(null); setSelectedFingerEsq(null); }}
-            style={{ float:"right", margin:8, fontSize:18 }}
-          >×</button>
-          <h3 style={{ textAlign:"center" }}>
-            Configurar dedo{" "}
-            {isDir ? fingersDir.find(f => f.name===selectedFinger)?.label
-                   : fingersEsq.find(f => f.name===selectedFinger)?.label}
-          </h3>
-          {/* Select para escolher a nota */}
-          <select
-            value={selectedKey}
-            onChange={handleKeyChange}
-            autoFocus
-            style={{ marginTop:16, width:"90%", fontSize:16, display:"block", marginLeft:"auto", marginRight:"auto" }}
-          >
-            <option value="" disabled>Selecione uma nota...</option>
-            {notes.map((note, i) => <option key={i} value={note}>{note}</option>)}
-          </select>
-        </div>
-      )}
+      {/* Área principal de configuração */}
+      <div className="config-main">
+        <div className="config-container">
+          <h1>Configuração da Luva</h1>
 
-      {/* Botão para enviar configuração para o ESP e feedback visual */}
-      <button
-        style={{ marginTop: 32, padding: "10px 28px", fontSize: 18, background: "#4f8cff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
-        onClick={handleSendToESP}
-      >
-        Salvar configurações na luva
-      </button>
-      {feedback && (
-        <div style={{ marginTop: 12, fontWeight: "bold", color: feedback.includes("sucesso") ? "green" : "red" }}>
-          {feedback}
+          {/* Informação do modo atual */}
+          <div className="current-mode-info">
+            <strong>Modo atual:</strong> {isCustomMode ? 'Personalizado' : selectedScale}
+            {!isCustomMode && (
+              <span className="mode-hint"></span>
+            )}
+          </div>
+
+          {/* Container das mãos lado a lado */}
+          <div className="hands-container">
+            {/* Mão Esquerda */}
+            <div className="hand-section">
+              <h2>Mão Esquerda</h2>
+              <div className="hand-visual">
+                <img src={luvaImgEsq} alt="Luva Esquerda" className="hand-image" />
+                
+              </div>
+            </div>
+
+            {/* Mão Direita */}
+            <div className="hand-section">
+              <h2>Mão Direita</h2>
+              <div className="hand-visual">
+                <img src={luvaImgDir} alt="Luva Direita" className="hand-image" />
+                
+              </div>
+            </div>
+          </div>
+
+          {/* Seletor de nota para dedo selecionado */}
+          {selectedFinger && isCustomMode && (
+            <div className="note-selector">
+              <h3>
+                Configurar {fingersDir.concat(fingersEsq).find(f => f.name === selectedFinger)?.label}
+                <span className="finger-key-display">
+                  (Tecla: {getFingerKey(selectedFinger)})
+                </span>
+              </h3>
+              <select
+                value={selectedKey}
+                onChange={handleKeyChange}
+                className="note-select"
+              >
+                <option value="">Selecione uma nota</option>
+                {allNotes.map((note) => (
+                  <option key={note} value={note}>
+                    {note}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Botões de Ação */}
+          <div className="action-buttons">
+            <button onClick={handleCancel} className="btn-cancel">
+              Cancelar
+            </button>
+            <button onClick={handleConfirm} className="btn-confirm">
+              Confirmar
+            </button>
+          </div>
+
+          {/* Feedback */}
+          {feedback && <div className="feedback">{feedback}</div>}
         </div>
-      )}
+      </div>
     </div>
   );
 }

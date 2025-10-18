@@ -39,6 +39,17 @@
   align-items: center;
 }
 
+/* Destaque para teclas da luva */
+.white-key.glove-key {
+  border: 2px solid #3b82f6;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.1), 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.black-key.glove-key {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
 
 
 /* Numero da tecla */
@@ -149,4 +160,41 @@
 
 .piano-main {
   margin-top: 48px; /* ajuste o valor conforme desejar */
+}
+
+/* Estilos para informações da luva */
+.glove-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: linear-gradient(135deg, #e8f4fd, #f1f8ff);
+  border-radius: 12px;
+  border: 1px solid #b3d9ff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.glove-info h3 {
+  margin: 0 0 10px 0;
+  color: #1e3a8a;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.glove-mapping {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.glove-key-info {
+  background: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1e7dd;
+  font-size: 12px;
+  color: #155724;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.glove-key-info strong {
+  color: #007bff;
 }

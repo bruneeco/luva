@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
-import { useGlove } from "../context/GloveContext";
 import "./Piano.css";
 
 // Todas as notas do piano (brancas e pretas, ordem cromática)
 const allNotes = [
-  "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5",
-  "C6", "C#6", "D6", "D#6", "E6", "F6", "F#6", "G6", "G#6", "A6", "A#6", "B6"
+  "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+  "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5"
 ];
 
 // Teclas do teclado físico para vincular (ordem deve bater com allNotes)
@@ -21,9 +20,6 @@ allNotes.forEach((note, i) => noteToKey[note] = keyboardKeys[i] || "");
 
 // Componente principal do piano virtual
 export default function Piano() {
-  // Hook do contexto da luva
-  const { getKeyToNoteMapping, fingerKeys } = useGlove();
-  
   // Estado para o sampler de áudio (Tone.js)
   const [sampler, setSampler] = useState(null);
   // Estado para as notas atualmente ativas (pressionadas)
@@ -109,20 +105,7 @@ export default function Piano() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
-      
-      // Primeiro verifica se é uma tecla da luva (QWERTYUIOP)
-      const gloveMapping = getKeyToNoteMapping();
-      if (gloveMapping[key]) {
-        const note = gloveMapping[key];
-        if (!pressedKeys.current.has(key)) {
-          pressedKeys.current.add(key);
-          triggerAttack(note);
-          setActiveNotes((prev) => [...prev, note]);
-        }
-        return;
-      }
-      
-      // Senão, procura na configuração tradicional do piano
+      // Procura a nota correspondente à tecla pressionada
       const note = allNotes[keyboardKeys.indexOf(key)];
       if (note) {
         if (!pressedKeys.current.has(key)) {
@@ -132,34 +115,21 @@ export default function Piano() {
         }
       }
     };
-    
     const handleKeyUp = (e) => {
       const key = e.key.toUpperCase();
-      
-      // Primeiro verifica se é uma tecla da luva
-      const gloveMapping = getKeyToNoteMapping();
-      if (gloveMapping[key]) {
-        const note = gloveMapping[key];
-        pressedKeys.current.delete(key);
-        setActiveNotes((prev) => prev.filter((n) => n !== note));
-        return;
-      }
-      
-      // Senão, procura na configuração tradicional
       const note = allNotes[keyboardKeys.indexOf(key)];
       if (note) {
         pressedKeys.current.delete(key);
         setActiveNotes((prev) => prev.filter((n) => n !== note));
       }
     };
-    
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [sampler, getKeyToNoteMapping]);
+  }, [sampler]);
 
   // Renderização do piano: separa brancas e pretas para visual
   const whiteNotes = allNotes.filter(n => !n.includes("#"));
@@ -167,12 +137,9 @@ export default function Piano() {
 
   // Para posicionar as pretas corretamente sobre as brancas
   const blackKeyOffsets = {
-    "C#5": 0, "D#5": 1, "F#5": 3, "G#5": 4, "A#5": 5,
-    "C#6": 7, "D#6": 8, "F#6": 10, "G#6": 11, "A#6": 12,
+    "C#4": 0, "D#4": 1, "F#4": 3, "G#4": 4, "A#4": 5,
+    "C#5": 7, "D#5": 8, "F#5": 10, "G#5": 11, "A#5": 12,
   };
-
-  // Obter mapeamento da luva para exibir
-  const gloveMapping = getKeyToNoteMapping();
 
   // Renderização do componente do piano
   return (
@@ -196,68 +163,62 @@ export default function Piano() {
       <div className="piano-container">
         <div className="piano" style={{ position: "relative" }}>
           {/* Teclas brancas */}
-          {whiteNotes.map((note, i) => {
-            const isGloveKey = Object.values(gloveMapping).includes(note);
-            return (
-              <div
-                key={note}
-                className={`white-key${activeNotes.includes(note) ? " active" : ""}${isGloveKey ? " glove-key" : ""}`}
-                onMouseDown={() => {
-                  // Só dispara se não estiver pressionada
-                  if (!pressedMouseNotes.current.has(note)) {
-                    pressedMouseNotes.current.add(note);
-                    triggerAttack(note);
-                    setActiveNotes((prev) => [...prev, note]);
-                  }
-                }}
-                onMouseUp={() => {
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-                onMouseLeave={() => {
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-              >
-                {/* Mostra a nota */}
-                <span className="note-name">{note}</span>
-              </div>
-            );
-          })}
+          {whiteNotes.map((note, i) => (
+            <div
+              key={note}
+              className={`white-key${activeNotes.includes(note) ? " active" : ""}`}
+              onMouseDown={() => {
+                // Só dispara se não estiver pressionada
+                if (!pressedMouseNotes.current.has(note)) {
+                  pressedMouseNotes.current.add(note);
+                  triggerAttack(note);
+                  setActiveNotes((prev) => [...prev, note]);
+                }
+              }}
+              onMouseUp={() => {
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+              onMouseLeave={() => {
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+            >
+              {/* Mostra a nota e a tecla vinculada */}
+              <span className="note-name">{note}</span>
+              <span className="key-number">{noteToKey[note]}</span>
+            </div>
+          ))}
           {/* Teclas pretas sobrepostas */}
-          {blackNotes.map((note, i) => {
-            const isGloveKey = Object.values(gloveMapping).includes(note);
-            // Espaçamento extra entre as pretas: 6px por índice
-            const extraSpace = i * 6;
-            return (
-              <div
-                key={note}
-                className={`black-key${activeNotes.includes(note) ? " active" : ""}${isGloveKey ? " glove-key" : ""}`}
-                style={{ left: `${blackKeyOffsets[note] * 63 + 44  + 19 + extraSpace}px`, width: '34px' }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  if (!pressedMouseNotes.current.has(note)) {
-                    pressedMouseNotes.current.add(note);
-                    triggerAttack(note);
-                    setActiveNotes((prev) => [...prev, note]);
-                  }
-                }}
-                onMouseUp={(e) => {
-                  e.stopPropagation();
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-                onMouseLeave={(e) => {
-                  e.stopPropagation();
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-              >
-                {/* Mostra a nota */}
-                <span className="note-name">{note}</span>
-              </div>
-            );
-          })}
+          {blackNotes.map((note) => (
+            <div
+              key={note}
+              className={`black-key${activeNotes.includes(note) ? " active" : ""}`}
+              style={{ left: `${(blackKeyOffsets[note] ?? 0) * 62 + 40}px` }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                if (!pressedMouseNotes.current.has(note)) {
+                  pressedMouseNotes.current.add(note);
+                  triggerAttack(note);
+                  setActiveNotes((prev) => [...prev, note]);
+                }
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+              onMouseLeave={(e) => {
+                e.stopPropagation();
+                pressedMouseNotes.current.delete(note);
+                setActiveNotes((prev) => prev.filter((n) => n !== note));
+              }}
+            >
+              {/* Mostra a nota e a tecla vinculada */}
+              <span className="note-name">{note}</span>
+              <span className="key-number">{noteToKey[note]}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
