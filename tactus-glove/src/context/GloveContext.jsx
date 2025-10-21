@@ -47,7 +47,7 @@ const normalizeNote = (note) => {
 // Função para gerar escala maior
 const generateMajorScale = (tonic) => {
   // Fórmula: Tom-Tom-semitom-Tom-Tom-Tom-semitom
-  const intervals = [2, 2, 1, 2, 2, 2, 1]; // em semitons
+  const intervals = [2, 2, 1, 2, 2, 2, 1, 2, 2]; // em semitons
   const normalizedTonic = normalizeNote(tonic);
   const startIndex = getNoteIndex(normalizedTonic);
   
@@ -56,7 +56,7 @@ const generateMajorScale = (tonic) => {
   const scale = [normalizedTonic];
   let currentIndex = startIndex;
   
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 9; i++) {
     currentIndex += intervals[i];
     const note = getNoteByIndex(currentIndex);
     if (note) {
@@ -70,7 +70,7 @@ const generateMajorScale = (tonic) => {
 // Função para gerar escala menor natural
 const generateMinorScale = (tonic) => {
   // Fórmula: Tom-semitom-Tom-Tom-semitom-Tom-Tom
-  const intervals = [2, 1, 2, 2, 1, 2, 2]; // em semitons
+  const intervals = [2, 1, 2, 2, 1, 2, 2, 2, 1]; // em semitons
   const normalizedTonic = normalizeNote(tonic);
   const startIndex = getNoteIndex(normalizedTonic);
   
@@ -79,7 +79,7 @@ const generateMinorScale = (tonic) => {
   const scale = [normalizedTonic];
   let currentIndex = startIndex;
   
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 9; i++) {
     currentIndex += intervals[i];
     const note = getNoteByIndex(currentIndex);
     if (note) {
