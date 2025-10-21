@@ -94,33 +94,33 @@ const generateMinorScale = (tonic) => {
 export const orderedScales = [
   // ...sem opção personalizada
   
-  // Escalas Maiores
+  // Escalas Maiores (ordem cromática)
   'Dó Maior',
-  'Sol Maior', 
+  'Dó# Maior',
   'Ré Maior',
-  'Lá Maior',
+  'Ré# Maior',
   'Mi Maior',
-  'Si / Dób Maior',
-  'Solb / Fá# Maior',
-  'Réb / Dó# Maior',
-  'Láb Maior',
-  'Mib Maior',
-  'Sib Maior',
   'Fá Maior',
-  
-  // Escalas Menores
-  'Lá Menor',
-  'Mi Menor',
-  'Si Menor',
-  'Fá# Menor',
-  'Dó# Menor',
-  'Láb / Sol# Menor',
-  'Mib / Ré# Menor',
-  'Sib / Lá# Menor',
-  'Fá Menor',
+  'Fá# Maior',
+  'Sol Maior',
+  'Sol# Maior',
+  'Lá Maior',
+  'Lá# Maior',
+  'Si Maior',
+
+  // Escalas Menores (ordem cromática)
   'Dó Menor',
+  'Dó# Menor',
+  'Ré Menor',
+  'Ré# Menor',
+  'Mi Menor',
+  'Fá Menor',
+  'Fá# Menor',
   'Sol Menor',
-  'Ré Menor'
+  'Sol# Menor',
+  'Lá Menor',
+  'Lá# Menor',
+  'Si Menor',
 ];
 
 // Definição completa das escalas
