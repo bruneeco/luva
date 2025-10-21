@@ -109,8 +109,7 @@ export default function Piano() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toUpperCase();
-      
-      // Primeiro verifica se é uma tecla da luva (QWERTYUIOP)
+      // Só dispara se a tecla está mapeada na escala
       const gloveMapping = getKeyToNoteMapping();
       if (gloveMapping[key]) {
         const note = gloveMapping[key];
@@ -121,22 +120,10 @@ export default function Piano() {
         }
         return;
       }
-      
-      // Senão, procura na configuração tradicional do piano
-      const note = allNotes[keyboardKeys.indexOf(key)];
-      if (note) {
-        if (!pressedKeys.current.has(key)) {
-          pressedKeys.current.add(key);
-          triggerAttack(note);
-          setActiveNotes((prev) => [...prev, note]);
-        }
-      }
+      // Senão, ignora
     };
-    
     const handleKeyUp = (e) => {
       const key = e.key.toUpperCase();
-      
-      // Primeiro verifica se é uma tecla da luva
       const gloveMapping = getKeyToNoteMapping();
       if (gloveMapping[key]) {
         const note = gloveMapping[key];
@@ -144,13 +131,7 @@ export default function Piano() {
         setActiveNotes((prev) => prev.filter((n) => n !== note));
         return;
       }
-      
-      // Senão, procura na configuração tradicional
-      const note = allNotes[keyboardKeys.indexOf(key)];
-      if (note) {
-        pressedKeys.current.delete(key);
-        setActiveNotes((prev) => prev.filter((n) => n !== note));
-      }
+      // Senão, ignora
     };
     
     window.addEventListener("keydown", handleKeyDown);
@@ -174,92 +155,110 @@ export default function Piano() {
   // Obter mapeamento da luva para exibir
   const gloveMapping = getKeyToNoteMapping();
 
+  // Função para converter nota internacional para português
+  function notaParaPortugues(note) {
+    // Exemplo: "C#5" ou "D6"
+    const match = note.match(/^([A-G])(#?)(\d)$/);
+    if (!match) return note;
+    const [_, letra, sustenido, oitava] = match;
+    const mapa = {
+      'C': 'Dó',
+      'D': 'Ré',
+      'E': 'Mi',
+      'F': 'Fá',
+      'G': 'Sol',
+      'A': 'Lá',
+      'B': 'Si',
+    };
+    return mapa[letra] + (sustenido ? '#' : '') + oitava;
+  }
+
   // Renderização do componente do piano
   return (
     <div className="piano-main">
-      {/* Barra de volume estilizada */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-        <label htmlFor="volume-slider" style={{ marginRight: 12, fontWeight: 500, fontSize: 16, color: "#2d3e50" }}>
-          Volume
-        </label>
-        <input
-          id="volume-slider"
-          className="volume-slider"
-          type="range"
-          min={-48}
-          max={0}
-          value={volume}
-          onChange={e => setVolume(Number(e.target.value))}
-        />
-      </div>
-      {/* Container centralizado do piano */}
-      <div className="piano-container">
-        <div className="piano" style={{ position: "relative" }}>
-          {/* Teclas brancas */}
-          {whiteNotes.map((note, i) => {
-            const isGloveKey = Object.values(gloveMapping).includes(note);
-            return (
-              <div
-                key={note}
-                className={`white-key${activeNotes.includes(note) ? " active" : ""}${isGloveKey ? " glove-key" : ""}`}
-                onMouseDown={() => {
-                  // Só dispara se não estiver pressionada
-                  if (!pressedMouseNotes.current.has(note)) {
-                    pressedMouseNotes.current.add(note);
-                    triggerAttack(note);
-                    setActiveNotes((prev) => [...prev, note]);
-                  }
-                }}
-                onMouseUp={() => {
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-                onMouseLeave={() => {
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-              >
-                {/* Mostra a nota */}
-                <span className="note-name">{note}</span>
-              </div>
-            );
-          })}
-          {/* Teclas pretas sobrepostas */}
-          {blackNotes.map((note, i) => {
-            const isGloveKey = Object.values(gloveMapping).includes(note);
-            // Espaçamento extra entre as pretas: 6px por índice
-            const extraSpace = i * 6;
-            return (
-              <div
-                key={note}
-                className={`black-key${activeNotes.includes(note) ? " active" : ""}${isGloveKey ? " glove-key" : ""}`}
-                style={{ left: `${blackKeyOffsets[note] * 63 + 44  + 19 + extraSpace}px`, width: '34px' }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  if (!pressedMouseNotes.current.has(note)) {
-                    pressedMouseNotes.current.add(note);
-                    triggerAttack(note);
-                    setActiveNotes((prev) => [...prev, note]);
-                  }
-                }}
-                onMouseUp={(e) => {
-                  e.stopPropagation();
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-                onMouseLeave={(e) => {
-                  e.stopPropagation();
-                  pressedMouseNotes.current.delete(note);
-                  setActiveNotes((prev) => prev.filter((n) => n !== note));
-                }}
-              >
-                {/* Mostra a nota */}
-                <span className="note-name">{note}</span>
-              </div>
-            );
-          })}
+        {/* Barra de volume estilizada */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+          <label htmlFor="volume-slider" style={{ marginRight: 12, fontWeight: 500, fontSize: 16, color: "#2d3e50" }}>
+            Volume
+          </label>
+          <input
+            id="volume-slider"
+            className="volume-slider"
+            type="range"
+            min={-48}
+            max={0}
+            value={volume}
+            onChange={e => setVolume(Number(e.target.value))}
+          />
+        </div>
+        {/* Container centralizado do piano */}
+        <div className="piano-container">
+          <div className="piano" style={{ position: "relative" }}>
+            {/* Teclas brancas */}
+            {whiteNotes.map((note, i) => {
+              const isGloveKey = Object.values(gloveMapping).includes(note);
+              return (
+                <div
+                  key={note}
+                  className={`white-key${activeNotes.includes(note) ? " active" : ""}${isGloveKey ? " glove-key" : ""}`}
+                  onMouseDown={() => {
+                    // Só dispara se não estiver pressionada
+                    if (!pressedMouseNotes.current.has(note)) {
+                      pressedMouseNotes.current.add(note);
+                      triggerAttack(note);
+                      setActiveNotes((prev) => [...prev, note]);
+                    }
+                  }}
+                  onMouseUp={() => {
+                    pressedMouseNotes.current.delete(note);
+                    setActiveNotes((prev) => prev.filter((n) => n !== note));
+                  }}
+                  onMouseLeave={() => {
+                    pressedMouseNotes.current.delete(note);
+                    setActiveNotes((prev) => prev.filter((n) => n !== note));
+                  }}
+                >
+                  {/* Mostra a nota em português */}
+                  <span className="note-name">{notaParaPortugues(note)}</span>
+                </div>
+              );
+            })}
+            {/* Teclas pretas sobrepostas */}
+            {blackNotes.map((note, i) => {
+              const isGloveKey = Object.values(gloveMapping).includes(note);
+              // Espaçamento extra entre as pretas: 6px por índice
+              const extraSpace = i * 6;
+              return (
+                <div
+                  key={note}
+                  className={`black-key${activeNotes.includes(note) ? " active" : ""}${isGloveKey ? " glove-key" : ""}`}
+                  style={{ left: `${blackKeyOffsets[note] * 63 + 44  + 19 + extraSpace}px`, width: '34px' }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    if (!pressedMouseNotes.current.has(note)) {
+                      pressedMouseNotes.current.add(note);
+                      triggerAttack(note);
+                      setActiveNotes((prev) => [...prev, note]);
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    e.stopPropagation();
+                    pressedMouseNotes.current.delete(note);
+                    setActiveNotes((prev) => prev.filter((n) => n !== note));
+                  }}
+                  onMouseLeave={(e) => {
+                    e.stopPropagation();
+                    pressedMouseNotes.current.delete(note);
+                    setActiveNotes((prev) => prev.filter((n) => n !== note));
+                  }}
+                >
+                  {/* Mostra a nota em português */}
+                  <span className="note-name">{notaParaPortugues(note)}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

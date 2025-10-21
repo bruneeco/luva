@@ -44,26 +44,35 @@ const normalizeNote = (note) => {
   return note;
 };
 
+const isNoteInRange = (note) => {
+  const idx = allNotes.indexOf(note);
+  return idx >= 0 && idx <= allNotes.indexOf('B6');
+};
+
+const forceNoteToOctave5 = (note) => {
+  const match = note.match(/^[A-G]#?/);
+  if (match) {
+    return match[0] + '5';
+  }
+  return note;
+};
+
 // Função para gerar escala maior
 const generateMajorScale = (tonic) => {
   // Fórmula: Tom-Tom-semitom-Tom-Tom-Tom-semitom
   const intervals = [2, 2, 1, 2, 2, 2, 1, 2, 2]; // em semitons
   const normalizedTonic = normalizeNote(tonic);
   const startIndex = getNoteIndex(normalizedTonic);
-  
   if (startIndex === -1) return [];
-  
-  const scale = [normalizedTonic];
+  const scale = [isNoteInRange(normalizedTonic) ? normalizedTonic : forceNoteToOctave5(normalizedTonic)];
   let currentIndex = startIndex;
-  
   for (let i = 0; i < 9; i++) {
     currentIndex += intervals[i];
-    const note = getNoteByIndex(currentIndex);
+    let note = getNoteByIndex(currentIndex);
     if (note) {
-      scale.push(note);
+      scale.push(isNoteInRange(note) ? note : forceNoteToOctave5(note));
     }
   }
-  
   return scale;
 };
 
@@ -73,20 +82,16 @@ const generateMinorScale = (tonic) => {
   const intervals = [2, 1, 2, 2, 1, 2, 2, 2, 1]; // em semitons
   const normalizedTonic = normalizeNote(tonic);
   const startIndex = getNoteIndex(normalizedTonic);
-  
   if (startIndex === -1) return [];
-  
-  const scale = [normalizedTonic];
+  const scale = [isNoteInRange(normalizedTonic) ? normalizedTonic : forceNoteToOctave5(normalizedTonic)];
   let currentIndex = startIndex;
-  
   for (let i = 0; i < 9; i++) {
     currentIndex += intervals[i];
-    const note = getNoteByIndex(currentIndex);
+    let note = getNoteByIndex(currentIndex);
     if (note) {
-      scale.push(note);
+      scale.push(isNoteInRange(note) ? note : forceNoteToOctave5(note));
     }
   }
-  
   return scale;
 };
 
@@ -167,8 +172,8 @@ const defaultFingerMapping = {
   'PolegarDir': '',      // Y - Geralmente não usado
   'IndicadorDir': 'G5',  // U
   'MédioDir': 'A5',      // I
-  'AnelarDir': 'B5',     // O
-  'MindinhoDir': 'C6',   // P
+  'AnelarDir': '',     // O
+  'MindinhoDir': '',   // P
 };
 
 // Mapeamento fixo dedo -> tecla do teclado
@@ -230,8 +235,9 @@ export const GloveProvider = ({ children }) => {
     ];
     
     notes.forEach((note, index) => {
+      let mappedNote = allNotes.includes(note) ? note : '';
       if (fingers[index]) {
-        newMapping[fingers[index]] = note;
+        newMapping[fingers[index]] = mappedNote;
       }
     });
     
@@ -273,7 +279,17 @@ export const GloveProvider = ({ children }) => {
       const key = getFingerKey(finger);
       const note = getFingerNote(finger);
       if (key && note) {
-        mapping[key] = note;
+        if (isNoteInRange(note)) {
+          mapping[key] = note;
+        } else {
+          // Força para a mesma nota na oitava 5
+          const match = note.match(/^[A-G]#?/);
+          if (match) {
+            const base = match[0];
+            const forcedNote = base + '5';
+            mapping[key] = forcedNote;
+          }
+        }
       }
     });
     return mapping;
@@ -283,7 +299,7 @@ export const GloveProvider = ({ children }) => {
   useEffect(() => {
     const savedScale = localStorage.getItem('gloveSelectedScale');
     const savedMode = localStorage.getItem('gloveConfigMode');
-    
+
     if (savedScale && scales[savedScale]) {
       setSelectedScale(savedScale);
     }
@@ -291,6 +307,13 @@ export const GloveProvider = ({ children }) => {
       setConfigMode(savedMode);
     }
   }, []);
+
+  // Sempre que a escala mudar, printa as notas no console
+  useEffect(() => {
+    if (selectedScale && scales[selectedScale]) {
+      console.log('Notas da escala:', scales[selectedScale]);
+    }
+  }, [selectedScale]);
   
   const contextValue = {
     // Estados

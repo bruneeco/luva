@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../assets/logo.png"; 
+import titleImg from "../assets/title.png"; 
 
 const Navbar = () => {
   const location = useLocation();
@@ -15,6 +16,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="logo">
         <img src={logo} alt="Tactus Glove" className="logo-img" />
+        <img src={titleImg} alt="Tactus Title" className="title-img" />
       </div>
       <ul className="nav-links">
         {pages.map(page => (

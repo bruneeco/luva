@@ -11,8 +11,19 @@
 }
 
 /* Logo menor e no canto esquerdo */
-.logo img {
-  height: 30px; /* reduzido */
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-img {
+  height: 44px;
+  width: auto;
+  display: block;
+}
+.title-img {
+  height: 40px;
   width: auto;
   display: block;
 }
