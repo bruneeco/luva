@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import Navbar from "./components/Navbar";
 import Piano from "./components/Piano";
 import Ajuda from "./components/Ajuda";
-import InfoBox from "./components/InfoBox";
+import Jogos from "./components/Jogos";
 import ConfigGlove from "./components/ConfigGlove"; // página de configurações
 import { GloveProvider } from "./context/GloveContext";
 import "./App.css";
@@ -39,6 +39,11 @@ export default function App() {
             <Route
               path="/piano"
               element={<Piano />}
+            />
+
+            <Route
+              path="/jogos"
+              element={<Jogos />}
             />
 
             {/* Página de configuração */}

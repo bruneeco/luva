@@ -9,6 +9,7 @@ const Navbar = () => {
   // Map pathname to page name
   const pages = [
     { path: "/piano", label: "Teclado" },
+    { path: "/jogos", label: "Jogos" },
     { path: "/configuracoes", label: "Configurações" },
     { path: "/ajuda", label: "Sobre" },
   ];

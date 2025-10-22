@@ -1,0 +1,190 @@
+:root{
+  --accent: #3b82f6;   
+  --primary: #0b5bd7;  
+  --muted: #6b7280;
+  --bg-start: #f7fbff;
+  --bg-end: #eef6ff;
+  --card-bg: #ffffff;
+  --glass: rgba(255,255,255,0.6);
+  --shadow-lg: 0 10px 30px rgba(11,43,92,0.08);
+  --radius: 14px;
+  --gap: 12px;
+  --transition: 180ms cubic-bezier(.2,.9,.3,1);
+}
+
+/* Root layout */
+.jogo-root{
+  display:flex;
+  justify-content:center;
+  padding:28px;
+  background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+  min-height: calc(100vh - 120px);
+  box-sizing: border-box;
+}
+
+/* Panel principal */
+.jogo-panel{
+  width: 100%;
+  max-width: 980px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), var(--card-bg));
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-lg);
+  font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+  color: #0f1724;
+  border: 1px solid rgba(11,43,92,0.04);
+}
+
+/* Título */
+.jogo-panel h2{
+  margin: 0 0 10px 0;
+  color: var(--primary);
+  font-size: 1.4rem;
+  letter-spacing: 0.2px;
+}
+
+/* Controles */
+.jogo-controls{
+  display:flex;
+  gap: var(--gap);
+  align-items:center;
+  flex-wrap:wrap;
+  margin-bottom: 14px;
+}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:8px 12px;
+  background: #fff;
+  border-radius:10px;
+  border:1px solid rgba(11,43,92,0.06);
+  cursor:pointer;
+  font-weight:600;
+  color:#07203a;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  user-select:none;
+}
+.btn:hover{ transform: translateY(-3px); box-shadow: 0 10px 24px rgba(11,43,92,0.06); }
+.btn:active{ transform: translateY(-1px) scale(0.997); }
+.btn.primary{
+  background: linear-gradient(90deg, var(--accent), #60a5fa);
+  color:#fff;
+  border:none;
+  box-shadow: 0 8px 20px rgba(59,130,246,0.12);
+}
+
+/* Controle range e checkbox */
+.jogo-controls label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:0.95rem;
+}
+.jogo-controls input[type="range"]{
+  width:160px;
+  appearance:none;
+  height:6px;
+  background: linear-gradient(90deg,var(--accent), #6ee7b7);
+  border-radius:999px;
+  outline:none;
+}
+.jogo-controls input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid rgba(255,255,255,0.6);
+  box-shadow:0 4px 10px rgba(11,43,92,0.12);
+}
+.checkbox{ font-size:0.95rem; color:var(--muted); }
+
+/* Estatísticas */
+.jogo-stats{
+  display:flex;
+  gap:20px;
+  align-items:center;
+  margin-bottom:16px;
+  color:#18303f;
+  font-weight:500;
+}
+.jogo-stats strong{ color:var(--primary); font-weight:700; }
+
+/* Grid do teclado */
+.keyboard-wrapper{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap:10px;
+  margin-bottom:16px;
+  align-items:center;
+}
+
+/* Cada tecla do jogo */
+.game-key{
+  background: linear-gradient(180deg,#fbfdff,#eef6ff);
+  border-radius: 10px;
+  padding: 14px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border: 1px solid rgba(11,43,92,0.06);
+  box-shadow: 0 6px 14px rgba(6,21,60,0.04);
+  cursor:pointer;
+  user-select:none;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  min-height:48px;
+}
+.game-key:hover{ transform: translateY(-4px); box-shadow: 0 14px 30px rgba(6,21,60,0.06); }
+.game-key:active{ transform: translateY(0); }
+
+/* Estado ativo (sequência / clique) */
+.game-key.active{
+  transform: translateY(-2px) scale(1.02);
+  background: linear-gradient(180deg,#fff7eb,#fff1d6);
+  border: 1px solid rgba(255,160,40,0.18);
+  box-shadow: 0 16px 36px rgba(255,160,40,0.12), 0 4px 12px rgba(6,21,60,0.06);
+}
+
+/* Badge com letra */
+.kbd{
+  font-weight:800;
+  color:#07203a;
+  letter-spacing:1px;
+  font-size:0.98rem;
+}
+
+/* Informação de ajuda */
+.howto{
+  margin-top:10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), #fbfdff);
+  padding:12px;
+  border-radius:10px;
+  border:1px solid rgba(11,43,92,0.04);
+  box-shadow: 0 8px 20px rgba(11,43,92,0.03);
+}
+.howto h3{ margin:0 0 8px 0; color:var(--primary); }
+.howto ol{ margin:6px 0 0 18px; color:#334155; }
+
+/* Mensagens / status */
+.jogo-panel em{ color:var(--muted); font-style:normal; }
+
+/* Responsividade */
+@media (max-width: 980px){
+  .keyboard-wrapper{ grid-template-columns: repeat(8, 1fr); }
+}
+@media (max-width: 640px){
+  .keyboard-wrapper{ grid-template-columns: repeat(6, 1fr); gap:8px; }
+  .game-key{ padding:10px 8px; min-height:40px; border-radius:8px; }
+  .jogo-controls input[type="range"]{ width:120px; }
+}
+
+/* Acessibilidade */
+.game-key:focus-visible, .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.14);
+  transform: translateY(-2px);
+}
+
+/* Preferência por reduzir movimento */
+@media (prefers-reduced-motion: reduce){
+  * { transition: none !important; animation: none !important; }
+}
