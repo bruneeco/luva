@@ -12,8 +12,8 @@ const allNotes = [
 
 // teclas do teclado físico que mapeiam as notas (mesma ordem)
 const keyboardKeys = [
-  "A","W","S","E","D","F","T","G","Y","H","U","J",
-  "K","O","L","P",";","Z","X","C","V","B","N","M"
+  "","","","","","","","","","","","",
+  "","","","","","","","","","","",""
 ];
 
 // mapa nota -> tecla (para mostrar dica na UI)
@@ -28,7 +28,7 @@ Object.entries(noteToKey).forEach(([note,key]) => { if (key) keyToNote[key] = no
 const SONGS = [
   {
     id: "cai",
-    name: "Cai Cai Balão (trecho)",
+    name: "Cai Cai Balão (Dó Maior)",
     seq: [
       { note: "G5", dur: "8n" }, { note: "G5", dur: "8n" }, { note: "F5", dur: "8n" }, { note: "E5", dur: "4n" },
       { note: "G5", dur: "8n" }, { note: "G5", dur: "8n" }, { note: "F5", dur: "8n" }, { note: "E5", dur: "4n" },
@@ -520,7 +520,7 @@ export default function Jogos(){
             {blackNotes.map((note,i)=> {
               const isActive = activeNotes.includes(note);
               const isGloveKey = Object.values(gloveMapping).includes(note);
-              const left = (blackKeyOffsets[note] || 0) * 63 + 44 + (i*6);
+              const left = (blackKeyOffsets[note] || 0) * 64 + 44 + 19 + (i*6);
               const mappedKey = noteToKey[note];
               const isExpected = currentExpectedNote === note;
               return (
