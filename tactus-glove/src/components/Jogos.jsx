@@ -4,22 +4,27 @@ import { useGlove } from "../context/GloveContext";
 import "./Jogos.css";
 import "./Piano.css";
 
+// todas as notas disponíveis (ordem cromática)
 const allNotes = [
   "C5","C#5","D5","D#5","E5","F5","F#5","G5","G#5","A5","A#5","B5",
   "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6"
 ];
 
+// teclas do teclado físico que mapeiam as notas (mesma ordem)
 const keyboardKeys = [
   "A","W","S","E","D","F","T","G","Y","H","U","J",
   "K","O","L","P",";","Z","X","C","V","B","N","M"
 ];
 
+// mapa nota -> tecla (para mostrar dica na UI)
 const noteToKey = {};
 allNotes.forEach((note,i) => noteToKey[note] = keyboardKeys[i] || "");
 
+// mapa tecla -> nota (usado para input via teclado)
 const keyToNote = {};
 Object.entries(noteToKey).forEach(([note,key]) => { if (key) keyToNote[key] = note; });
 
+// músicas / sequências do jogo
 const SONGS = [
   {
     id: "cai",
@@ -39,27 +44,116 @@ const SONGS = [
 ];
 
 export default function Jogos(){
+  // pegar mapeamento da luva (se existir)
   const { getKeyToNoteMapping } = useGlove();
 
-  const [sampler, setSampler] = useState(null);
-  const [loaded, setLoaded] = useState(false);
-  const [volume, setVolume] = useState(-12);
-  const volumeNode = useRef(null);
+  // --- estados e refs principais ---
+  const [sampler, setSampler] = useState(null); // sampler de áudio
+  const [loaded, setLoaded] = useState(false); // se amostras carregadas
+  const [volume, setVolume] = useState(-12); // volume em dB
+  const volumeNode = useRef(null); // node do Tone.js para controlar volume
 
-  const [activeNotes, setActiveNotes] = useState([]);
-  const pressedMouseNotes = useRef(new Set());
-  const pressedKeys = useRef(new Set());
+  const [activeNotes, setActiveNotes] = useState([]); // notas atualmente "acendidas"
+  const pressedMouseNotes = useRef(new Set()); // controle de clique do mouse
+  const pressedKeys = useRef(new Set()); // controle de teclas pressionadas
 
+  // sustain / timers
+  const sustainMs = useRef(1200); // quanto tempo manter nota após soltar (ms)
+  const releaseTimers = useRef(new Map()); // map note => timeout id
+
+  // estado do jogo
   const [selectedSong, setSelectedSong] = useState(SONGS[0].id);
-  const [mode, setMode] = useState("idle");
+  const [mode, setMode] = useState("idle"); // idle | showing | playing | success
   const [status, setStatus] = useState("Pronto");
   const [playerIndex, setPlayerIndex] = useState(0);
+
+  // índice da nota esperada (indicador azul)
   const [expectedIndex, setExpectedIndex] = useState(null);
+  const expectedIndexRef = useRef(expectedIndex); // ref sincronizada para listeners
+
+  // mantém ref atualizada para evitar stale closures
+  useEffect(() => {
+    expectedIndexRef.current = expectedIndex;
+  }, [expectedIndex]);
+
   const [score, setScore] = useState(0);
-  const [speed, setSpeed] = useState(420);
+  const [speed, setSpeed] = useState(420); // ainda usado para durToMs
   const playerTimeout = useRef(null);
 
-  // 🚀 Inicializa sampler
+  // indicador / auto-advance
+  const indicatorTimer = useRef(null);
+  const currentSongRef = useRef(null);
+  const completedIndices = useRef(new Set()); // passos já pontuados
+
+  // --- helpers de timers / release ---
+  const clearReleaseTimer = (note) => {
+    const t = releaseTimers.current.get(note);
+    if (t) {
+      clearTimeout(t);
+      releaseTimers.current.delete(note);
+    }
+  };
+  // agenda liberação da nota depois de ms
+  const scheduleRelease = (note, ms) => {
+    clearReleaseTimer(note);
+    const id = setTimeout(() => {
+      try { sampler?.triggerRelease?.(note); } catch {}
+      setActiveNotes(prev => prev.filter(n => n !== note));
+      releaseTimers.current.delete(note);
+    }, ms);
+    releaseTimers.current.set(note, id);
+  };
+  const immediateRelease = (note) => {
+    clearReleaseTimer(note);
+    try { sampler?.triggerRelease?.(note); } catch {}
+    setActiveNotes(prev => prev.filter(n => n !== note));
+  };
+  const stopAllNotes = () => {
+    // limpa todos os timers e libera qualquer nota ativa
+    for (const [note, t] of releaseTimers.current) {
+      clearTimeout(t);
+    }
+    releaseTimers.current.clear();
+    [...new Set(activeNotes)].forEach(n => {
+      try { sampler?.triggerRelease?.(n); } catch {}
+    });
+    setActiveNotes([]);
+  };
+
+  // limpa indicador automático
+  const clearIndicator = () => {
+    if (indicatorTimer.current) {
+      clearTimeout(indicatorTimer.current);
+      indicatorTimer.current = null;
+    }
+    currentSongRef.current = null;
+  };
+
+  // agenda passo do indicador (não usado no modo "apertar para avançar")
+  const scheduleIndicatorStep = (song, idx) => {
+    clearIndicator();
+    if (!song || idx == null || idx >= song.seq.length) {
+      setExpectedIndex(null);
+      return;
+    }
+    currentSongRef.current = song;
+    setExpectedIndex(idx);
+    const step = song.seq[idx];
+    const dur = (typeof step === "string") ? "8n" : (step.dur || "8n");
+    const ms = durToMs(dur);
+    indicatorTimer.current = setTimeout(() => {
+      if (currentSongRef.current?.id !== song.id) return;
+      const next = idx + 1;
+      if (next < song.seq.length) {
+        scheduleIndicatorStep(song, next);
+      } else {
+        setExpectedIndex(song.seq.length - 1);
+        clearIndicator();
+      }
+    }, ms);
+  };
+
+  // --- inicializa sampler (Tone.Sampler) ---
   useEffect(() => {
     volumeNode.current = new Tone.Volume(volume).toDestination();
 
@@ -82,32 +176,36 @@ export default function Jogos(){
     Tone.loaded().then(() => setLoaded(true));
 
     return () => {
-      try { s.dispose(); volumeNode.current.dispose(); } catch {}
+      try {
+        for (const [, t] of releaseTimers.current) clearTimeout(t);
+        releaseTimers.current.clear();
+        clearIndicator();
+        s.dispose();
+        volumeNode.current.dispose();
+      } catch {}
     };
   }, []);
 
+  // atualiza volume quando o estado muda
   useEffect(() => {
     if (volumeNode.current) volumeNode.current.volume.value = volume;
   }, [volume]);
 
-  // 🔹 Função que "pinta" a nota
+  // pinta uma nota por curto tempo (efeito visual)
   const flashNote = (note, ms = 220) => {
     setActiveNotes(prev => prev.includes(note) ? prev : [...prev, note]);
     setTimeout(() => setActiveNotes(prev => prev.filter(n => n !== note)), ms);
   };
 
-  // 🔹 Toca nota longa
+  // toca nota e agenda release automático (usado na reprodução da sequência)
   const triggerAttackRelease = async (note, dur = "8n") => {
     try { await Tone.start(); } catch {}
     if (sampler && loaded) {
       const duration = Tone.Time(dur).toSeconds() * 1.8;
+      clearReleaseTimer(note);
       sampler.triggerAttack(note);
       setActiveNotes(prev => [...new Set([...prev, note])]);
-
-      setTimeout(() => {
-        sampler.triggerRelease(note);
-        setActiveNotes(prev => prev.filter(n => n !== note));
-      }, duration * 1000);
+      scheduleRelease(note, Math.max(200, Math.round(duration * 1000)));
     } else {
       const synth = new Tone.Synth({
         envelope: { attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.8 }
@@ -117,6 +215,7 @@ export default function Jogos(){
     }
   };
 
+  // converte duração musical para ms (simples)
   const durToMs = (dur) => {
     switch (dur) {
       case "4n": return speed * 2.0;
@@ -126,123 +225,180 @@ export default function Jogos(){
     }
   };
 
+  // retorna a nota no passo idx da música
   const noteAt = (song, idx) => {
     if (!song || !song.seq || idx == null) return null;
     const step = song.seq[idx];
     return typeof step === "string" ? step : (step && step.note);
   };
 
-  // 🔹 Mostra música (sequência)
-  const showSong = async (songSeq) => {
+  // --- reproduz a sequência (mostra para o usuário) ---
+  const showSong = async (songSeq, songId) => {
     setMode("showing");
     setStatus("Mostrando sequência");
     setPlayerIndex(0);
     setExpectedIndex(null);
+    completedIndices.current.clear();
+    stopAllNotes();
+    clearTimeout(playerTimeout.current);
+    clearIndicator();
     await new Promise(res => setTimeout(res, 180));
-    const song = SONGS.find(s => s.id === selectedSong);
+
+    const song = SONGS.find(s => s.id === songId);
+    if (!song) {
+      setMode("idle");
+      setStatus("Pronto");
+      return;
+    }
+
     for (let i = 0; i < songSeq.length; i++){
       const step = songSeq[i];
       const note = typeof step === "string" ? step : step.note;
       const dur = typeof step === "string" ? "8n" : (step.dur || "8n");
-      setExpectedIndex(i);
+      setExpectedIndex(i); // destaca a nota enquanto toca
       await triggerAttackRelease(note, dur);
       await new Promise(res => setTimeout(res, durToMs(dur)));
     }
+
+    // após reproduzir, passa para modo onde usuário precisa apertar cada nota indicada
     setMode("playing");
     setStatus("Sua vez — toque as notas na ordem!");
     setPlayerIndex(0);
-    setExpectedIndex(0);
+    completedIndices.current.clear();
+    setExpectedIndex(0); // espera primeira nota do usuário
   };
 
-  // 🔹 Jogador toca nota
-  const handlePlayerInput = async (note) => {
+  // resolve uma tecla/entrada para nota (usa mapping do contexto ou keyToNote)
+  const resolveKeyToNote = (input) => {
+    if (!input) return null;
+    if (/^[A-G]#?\d$/i.test(String(input).trim())) return String(input).trim().toUpperCase();
+    const keyChar = String(input).trim();
+    const gm = getKeyToNoteMapping && getKeyToNoteMapping();
+    return (gm && (gm[keyChar] || gm[keyChar.toUpperCase()] || gm[keyChar.toLowerCase()]))
+      || keyToNote[keyChar] 
+      || keyToNote[keyChar.toUpperCase()] 
+      || keyToNote[keyChar.toLowerCase()] 
+      || null;
+  };
+
+  // --- quando jogador aperta uma nota (mouse ou teclado) ---
+  const handlePlayerInput = (rawInput) => {
     if (mode !== "playing") return;
     const song = SONGS.find(s => s.id === selectedSong);
     if (!song) return;
+    const currentIdx = expectedIndexRef.current; // usa ref para evitar stale closure
+    if (currentIdx == null) return;
 
-    const expectedObj = song.seq[playerIndex];
-    const expected = typeof expectedObj === "string" ? expectedObj : expectedObj.note;
+    const pressedNote = resolveKeyToNote(rawInput);
+    if (!pressedNote) {
+      setStatus("Tecla não mapeada para nota");
+      return;
+    }
 
-    await triggerAttackRelease(note, "8n");
+    // toca o som da nota pressionada
+    triggerAttackRelease(pressedNote, "8n");
 
-    if (note === expected) {
-      const next = playerIndex + 1;
-      setScore(prev => prev + 1);
-      setStatus("Correto!");
-      if (next < song.seq.length) {
-        setPlayerIndex(next);
-        setExpectedIndex(next);
-      } else {
-        setMode("success");
-        setStatus("🎵 Música completa!");
-        setExpectedIndex(null);
-        setPlayerIndex(0);
-        clearTimeout(playerTimeout.current);
-        playerTimeout.current = setTimeout(() => {
-          setMode("idle");
-          setStatus("Pronto");
-        }, 1500);
+    const expectedRaw = noteAt(song, currentIdx) || "";
+    const expectedNote = String(expectedRaw).trim().toUpperCase();
+
+    if (expectedNote && pressedNote.toUpperCase() === expectedNote) {
+      // marca ponto se ainda não marcou este passo
+      if (!completedIndices.current.has(currentIdx)) {
+        completedIndices.current.add(currentIdx);
+        setScore(prev => prev + 1);
       }
+      setStatus("Correto!");
+
+      // avança para próxima nota — atualiza ref também
+      setExpectedIndex(prev => {
+        const next = (currentIdx == null) ? 1 : currentIdx + 1;
+        if (next < song.seq.length) {
+          expectedIndexRef.current = next;
+          return next;
+        } else {
+          // fim da música
+          clearIndicator();
+          setMode("success");
+          setStatus("🎵 Música completa!");
+          setPlayerIndex(0);
+          clearTimeout(playerTimeout.current);
+          playerTimeout.current = setTimeout(() => {
+            setMode("idle");
+            setStatus("Pronto");
+          }, 1500);
+          expectedIndexRef.current = null;
+          return null;
+        }
+      });
     } else {
-      setMode("fail");
-      setStatus(`Erro! A nota certa era ${expected}`);
-      setExpectedIndex(playerIndex);
-      clearTimeout(playerTimeout.current);
-      playerTimeout.current = setTimeout(() => {
-        setMode("idle");
-        setStatus("Pronto");
-        setExpectedIndex(null);
-        setPlayerIndex(0);
-      }, 1500);
+      // mostra erro mas não avança indicador
+      setStatus(`Errado — tente a nota azul (${expectedRaw || "?"})`);
     }
   };
 
-  // 🔹 Eventos teclado (com sustain)
+  // --- listeners de teclado (respeita mapeamento e sustain) ---
   useEffect(() => {
+    const resolveKeyChar = (e) => {
+      if (e.key && e.key.length === 1) return e.key.toUpperCase();
+      if (e.code && e.code.startsWith("Key")) return e.code.slice(3).toUpperCase();
+      return String(e.key || "").toUpperCase();
+    };
+
     const onKeyDown = (e) => {
-      const key = String(e.key).toUpperCase();
-      if (!key || pressedKeys.current.has(key)) return;
-      pressedKeys.current.add(key);
+      if (mode === "showing") return; // bloqueia durante reprodução
+      const keyChar = resolveKeyChar(e);
+      if (!keyChar || pressedKeys.current.has(keyChar)) return;
+      pressedKeys.current.add(keyChar);
 
-      const gloveMapping = getKeyToNoteMapping && getKeyToNoteMapping();
-      let note = gloveMapping?.[key] || keyToNote[key];
-
-      if (note) {
+      const mappedNote = resolveKeyToNote(keyChar);
+      console.log("[keyDown] keyChar:", keyChar, "mappedNote:", mappedNote, "mode:", mode, "expectedIndexRef:", expectedIndexRef.current);
+      if (mappedNote) {
         e.preventDefault();
-        setActiveNotes(prev => [...new Set([...prev, note])]); // mantém nota ativa
-        if (mode === "playing") handlePlayerInput(note);
-        else sampler?.triggerAttack?.(note);
+        clearReleaseTimer(mappedNote);
+        setActiveNotes(prev => [...new Set([...prev, mappedNote])]);
+        if (mode === "playing") {
+          // passa nota já mapeada para evitar ambiguidade
+          handlePlayerInput(mappedNote);
+        } else {
+          sampler?.triggerAttack?.(mappedNote);
+        }
       }
     };
+
     const onKeyUp = (e) => {
-      const key = String(e.key).toUpperCase();
-      pressedKeys.current.delete(key);
-      const gloveMapping = getKeyToNoteMapping && getKeyToNoteMapping();
-      let note = gloveMapping?.[key] || keyToNote[key];
-      if (note) {
-        sampler?.triggerRelease?.(note);
-        setActiveNotes(prev => prev.filter(n => n !== note));
-      }
+      const keyChar = resolveKeyChar(e);
+      pressedKeys.current.delete(keyChar);
+      const mappedNote = resolveKeyToNote(keyChar);
+      console.log("[keyUp] keyChar:", keyChar, "mappedNote:", mappedNote);
+      if (mappedNote) scheduleRelease(mappedNote, sustainMs.current);
     };
+
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [mode, playerIndex, selectedSong, sampler, loaded, getKeyToNoteMapping]);
+  }, [mode, playerIndex, selectedSong, sampler, loaded]); // dependências reativas
 
+  // --- iniciar música selecionada ---
   const startSelected = async () => {
     try { await Tone.start(); } catch {}
     const song = SONGS.find(s=>s.id===selectedSong);
     if (!song) return;
+    stopAllNotes();
+    clearTimeout(playerTimeout.current);
+    clearIndicator();
+    completedIndices.current.clear();
+    setScore(0); // reset score ao iniciar
     setMode("idle");
     setStatus("Pronto");
     setPlayerIndex(0);
     setExpectedIndex(null);
-    setTimeout(() => showSong(song.seq), 200);
+    setTimeout(() => showSong(song.seq, song.id), 200);
   };
 
+  // --- layout das teclas brancas e pretas ---
   const whiteNotes = allNotes.filter(n => !n.includes("#"));
   const blackNotes = allNotes.filter(n => n.includes("#"));
   const blackKeyOffsets = {
@@ -250,8 +406,12 @@ export default function Jogos(){
     "C#6": 7, "D#6": 8, "F#6": 10, "G#6": 11, "A#6": 12,
   };
 
+  // label curta (usada antes) — agora usamos notaParaPortugues
   function notaLabel(note){ return note.replace(/\d/,''); }
+
   const gloveMapping = (getKeyToNoteMapping && getKeyToNoteMapping()) || {};
+
+  // estilo para nota esperada (azul)
   const expectedStyleFor = (isBlack) => ({
     background: isBlack
       ? "linear-gradient(180deg,#1e40af,#3b82f6)"
@@ -260,16 +420,37 @@ export default function Jogos(){
     borderColor: "rgba(37,99,235,0.6)",
     boxShadow: "0 0 20px rgba(37,99,235,0.4)"
   });
+
+  // nota atualmente esperada (usada na renderização)
   const currentExpectedNote = (() => {
     const song = SONGS.find(s => s.id === selectedSong);
     if (!song || expectedIndex == null) return null;
     return noteAt(song, expectedIndex);
   })();
 
+  // exibe nota (Dó, Ré, Mi...) com sustenido e oitava
+  function notaParaPortugues(note) {
+    if (!note) return note;
+    const match = String(note).match(/^([A-G])(#?)(\d)$/);
+    if (!match) return note;
+    const [, letra, sustenido, oitava] = match;
+    const mapa = {
+      'C': 'Dó',
+      'D': 'Ré',
+      'E': 'Mi',
+      'F': 'Fá',
+      'G': 'Sol',
+      'A': 'Lá',
+      'B': 'Si',
+    };
+    return mapa[letra] + (sustenido ? '#' : '') + oitava;
+  }
+
+  
   return (
     <div className="jogo-root">
       <div className="jogo-panel">
-        <h2>Jogos Musicais — Acompanhe a canção</h2>
+        <h2>Jogos Musicais</h2>
 
         <div className="jogo-controls">
           <label>
@@ -283,15 +464,9 @@ export default function Jogos(){
             {loaded ? "Tocar / Jogar" : "Carregando amostras..."}
           </button>
 
-          <button className="btn" onClick={() => { setMode("idle"); setPlayerIndex(0); setStatus("Pronto"); setExpectedIndex(null); }}>
+          <button className="btn" onClick={() => { clearIndicator(); setMode("idle"); setPlayerIndex(0); setStatus("Pronto"); setExpectedIndex(null); stopAllNotes(); }}>
             Parar
           </button>
-
-          <label>
-            Velocidade
-            <input type="range" min="260" max="900" step="20" value={speed}
-              onChange={e=>setSpeed(Number(e.target.value))} />
-          </label>
 
           <label>
             Volume
@@ -319,24 +494,23 @@ export default function Jogos(){
                   onMouseDown={() => {
                     if (!pressedMouseNotes.current.has(note)) {
                       pressedMouseNotes.current.add(note);
-                      sampler?.triggerAttack?.(note);
+                      clearReleaseTimer(note);
+                      sampler?.triggerAttack?.(note); // toca ao clicar
                       setActiveNotes(prev => [...new Set([...prev, note])]);
-                      if (mode === "playing") handlePlayerInput(note);
+                      if (mode === "playing") handlePlayerInput(note); // passa nota ao handler
                     }
                   }}
                   onMouseUp={() => {
                     pressedMouseNotes.current.delete(note);
-                    sampler?.triggerRelease?.(note);
-                    setActiveNotes(prev => prev.filter(n => n !== note));
+                    scheduleRelease(note, sustainMs.current); // agenda release ao soltar
                   }}
                   onMouseLeave={() => {
                     pressedMouseNotes.current.delete(note);
-                    sampler?.triggerRelease?.(note);
-                    setActiveNotes(prev => prev.filter(n => n !== note));
+                    scheduleRelease(note, sustainMs.current);
                   }}
                 >
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-                    <div className="note-name">{notaLabel(note)}</div>
+                    <div className="note-name">{notaParaPortugues(note)}</div> {/* mostra partitura */}
                     <div style={{fontSize:12, color:isExpected ? "#e6f0ff" : "#8b97a6", marginTop:6}}>{mappedKey}</div>
                   </div>
                 </div>
@@ -355,22 +529,21 @@ export default function Jogos(){
                   style={{left:`${left}px`, width:34, ...(isExpected ? expectedStyleFor(true) : {})}}
                   onMouseDown={(e)=>{ e.stopPropagation(); if (!pressedMouseNotes.current.has(note)) {
                     pressedMouseNotes.current.add(note);
+                    clearReleaseTimer(note);
                     sampler?.triggerAttack?.(note);
                     setActiveNotes(prev => [...new Set([...prev, note])]);
                     if (mode === "playing") handlePlayerInput(note);
                   }}}
                   onMouseUp={() => {
                     pressedMouseNotes.current.delete(note);
-                    sampler?.triggerRelease?.(note);
-                    setActiveNotes(prev => prev.filter(n => n !== note));
+                    scheduleRelease(note, sustainMs.current);
                   }}
                   onMouseLeave={() => {
                     pressedMouseNotes.current.delete(note);
-                    sampler?.triggerRelease?.(note);
-                    setActiveNotes(prev => prev.filter(n => n !== note));
+                    scheduleRelease(note, sustainMs.current);
                   }}
                 >
-                  <div className="note-name">{notaLabel(note)}</div>
+                  <div className="note-name">{notaParaPortugues(note)}</div>
                   <div style={{ fontSize: 10, color: isExpected ? "#e0f2fe" : "#cbd5e1", marginTop: 4 }}>
                     {mappedKey}
                   </div>

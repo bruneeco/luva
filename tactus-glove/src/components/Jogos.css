@@ -184,7 +184,3 @@
   transform: translateY(-2px);
 }
 
-/* Preferência por reduzir movimento */
-@media (prefers-reduced-motion: reduce){
-  * { transition: none !important; animation: none !important; }
-}
