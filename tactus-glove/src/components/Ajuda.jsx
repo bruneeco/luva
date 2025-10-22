@@ -17,7 +17,7 @@ export default function Ajuda() {
       <section className="ajuda-section">
         <h2>🎵 Como Funciona</h2>
         <p>
-          A luva utiliza <strong>sensores de flexão</strong> conectados a um{" "}
+          A luva utiliza <strong>ativadores mecânicos</strong> conectados a um{" "}
           <strong>ESP32</strong>. Cada movimento dos dedos é convertido em
           sinais digitais, que são enviados para o computador ou celular.  
           Esses sinais são traduzidos em notas musicais através de um{" "}
