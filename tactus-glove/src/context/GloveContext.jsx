@@ -85,7 +85,7 @@ const generateMinorScale = (tonic) => {
   if (startIndex === -1) return [];
   const scale = [isNoteInRange(normalizedTonic) ? normalizedTonic : forceNoteToOctave5(normalizedTonic)];
   let currentIndex = startIndex;
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 10; i++) {
     currentIndex += intervals[i];
     let note = getNoteByIndex(currentIndex);
     if (note) {
@@ -136,12 +136,12 @@ export const scales = {
   'Ré Maior': generateMajorScale('D5'),
   'Lá Maior': generateMajorScale('A5'),
   'Mi Maior': generateMajorScale('E5'),
-  'Si / Dób Maior': generateMajorScale('B5'),
-  'Solb / Fá# Maior': generateMajorScale('F#5'),
-  'Réb / Dó# Maior': generateMajorScale('C#5'),
-  'Láb Maior': generateMajorScale('G#5'),
-  'Mib Maior': generateMajorScale('D#5'),
-  'Sib Maior': generateMajorScale('A#5'),
+  'Si Maior': generateMajorScale('B5'),
+  'Fá# Maior': generateMajorScale('F#5'),
+  'Dó# Maior': generateMajorScale('C#5'),
+  'Sol# Maior': generateMajorScale('G#5'),
+  'Ré# Maior': generateMajorScale('D#5'),
+  'Lá# Maior': generateMajorScale('A#5'),
   'Fá Maior': generateMajorScale('F5'),
   
   // Escalas Menores
@@ -150,9 +150,9 @@ export const scales = {
   'Si Menor': generateMinorScale('B5'),
   'Fá# Menor': generateMinorScale('F#5'),
   'Dó# Menor': generateMinorScale('C#5'),
-  'Láb / Sol# Menor': generateMinorScale('G#5'),
-  'Mib / Ré# Menor': generateMinorScale('D#5'),
-  'Sib / Lá# Menor': generateMinorScale('A#5'),
+  'Sol# Menor': generateMinorScale('G#5'),
+  'Ré# Menor': generateMinorScale('D#5'),
+  'Lá# Menor': generateMinorScale('A#5'),
   'Fá Menor': generateMinorScale('F5'),
   'Dó Menor': generateMinorScale('C5'),
   'Sol Menor': generateMinorScale('G5'),
@@ -162,18 +162,18 @@ export const scales = {
 // Mapeamento padrão dos dedos (10 dedos para teclas QWERTYUIOP)
 const defaultFingerMapping = {
   // Mão Esquerda (5 dedos: Q, W, E, R, T)
-  'PolegarEsq': '',      // Q - Geralmente não usado
-  'IndicadorEsq': 'C5',  // W 
-  'MédioEsq': 'D5',      // E
-  'AnelarEsq': 'E5',     // R
-  'MindinhoEsq': 'F5',   // T
-  
+  'PolegarEsq': 'C5',      // Q - Geralmente não usado
+  'IndicadorEsq': 'D5',  // W 
+  'MédioEsq': 'E5',      // E
+  'AnelarEsq': 'F5',     // R
+  'MindinhoEsq': 'G5',   // T
+
   // Mão Direita (5 dedos: Y, U, I, O, P)
-  'PolegarDir': '',      // Y - Geralmente não usado
-  'IndicadorDir': 'G5',  // U
-  'MédioDir': 'A5',      // I
-  'AnelarDir': '',     // O
-  'MindinhoDir': '',   // P
+  'PolegarDir': 'A5',      // Y - Geralmente não usado
+  'IndicadorDir': 'B5',  // U
+  'MédioDir': 'C5',      // I
+  'AnelarDir': 'D5',     // O
+  'MindinhoDir': 'E5',   // P
 };
 
 // Mapeamento fixo dedo -> tecla do teclado
@@ -240,6 +240,19 @@ export const GloveProvider = ({ children }) => {
         newMapping[fingers[index]] = mappedNote;
       }
     });
+
+    // Ajusta as duas últimas notas para os 2º e 3º graus da escala
+    if (notes.length >= 3) {
+      // Função para trocar a oitava
+      const swapOctave = (note) => {
+        if (!note) return note;
+        if (note.endsWith('5')) return note.replace('5', '6');
+        if (note.endsWith('6')) return note.replace('6', '5');
+        return note;
+      };
+      newMapping['AnelarDir'] = swapOctave(notes[1]); // 2º grau na oitava oposta
+      newMapping['MindinhoDir'] = swapOctave(notes[2]); // 3º grau na oitava oposta
+    }
     
     setFingerMapping(newMapping);
     setSelectedScale(scaleName);
